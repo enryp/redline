@@ -36,6 +36,7 @@ public class ServiceProviderService {
                 .toList();
     }
 
+    @Transactional
     public List<ServiceProviderResource> getServiceProviders() {
         return serviceProviderRepository.findAll().stream()
                 .map(provider -> new ServiceProviderResource(provider.getId(), provider.getName()))
