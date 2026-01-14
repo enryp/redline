@@ -7,6 +7,7 @@ import com.metaformsystems.redline.dao.VPAResource;
 import com.metaformsystems.redline.model.Dataspace;
 import com.metaformsystems.redline.model.ParticipantProfile;
 import com.metaformsystems.redline.model.ServiceProvider;
+import com.metaformsystems.redline.model.Tenant;
 import com.metaformsystems.redline.repository.DataspaceRepository;
 import com.metaformsystems.redline.repository.ParticipantRepository;
 import com.metaformsystems.redline.repository.ServiceProviderRepository;
@@ -282,11 +283,14 @@ class TenantServiceIntegrationTest {
     void shouldGetParticipantContextId() {
         // Arrange
         var tenantId = "tenant-123";
+        var tenant = new Tenant();
+        tenant.setCorrelationId(tenantId);
         var participantId = "participant-456";
         var expectedContextId = "ctx-789";
 
         var entity = new ParticipantProfile();
         entity.setCorrelationId(participantId);
+        entity.setTenant(tenant);
         entity = participantRepository.save(entity);
         mockWebServer.enqueue(new MockResponse()
                 .setBody("""
@@ -314,10 +318,13 @@ class TenantServiceIntegrationTest {
     void shouldGetParticipantContextId_notReadyYet() {
         // Arrange
         var tenantId = "tenant-123";
+        var tenant = new Tenant();
+        tenant.setCorrelationId(tenantId);
         var participantId = "participant-456";
         var expectedContextId = "ctx-789";
         var entity = new ParticipantProfile();
         entity.setCorrelationId(participantId);
+        entity.setTenant(tenant);
         entity = participantRepository.save(entity);
         mockWebServer.enqueue(new MockResponse()
                 .setBody("""
