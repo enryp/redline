@@ -28,13 +28,11 @@ import java.util.List;
 public class RedlineController {
     private final ServiceProviderService serviceProviderService;
     private final TenantService tenantService;
-    private final ServiceProviderRepository serviceProviderRepository;
 
     public RedlineController(ServiceProviderService serviceProviderService,
                              TenantService tenantService,
                              ServiceProviderRepository serviceProviderRepository) {
         this.tenantService = tenantService;
-        this.serviceProviderRepository = serviceProviderRepository;
         this.serviceProviderService = serviceProviderService;
     }
 
@@ -68,9 +66,7 @@ public class RedlineController {
 
     @PostMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/deployments")
 //    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ParticipantProfileResource> deployParticipant(@PathVariable
-                                                                        Long participantId,
-                                                                        @RequestBody NewParticipantDeployment deployment) {
+    public ResponseEntity<ParticipantProfileResource> deployParticipant(@RequestBody NewParticipantDeployment deployment) {
         var participant = tenantService.deployParticipant(deployment);
         return ResponseEntity.ok(participant);
     }
