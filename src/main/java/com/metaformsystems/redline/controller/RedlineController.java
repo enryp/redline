@@ -39,14 +39,12 @@ public class RedlineController {
     @GetMapping("dataspaces")
 //    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<DataspaceResource>> getDataspaces() {
-        // TODO make a service
         return ResponseEntity.ok(serviceProviderService.getDataspaces());
     }
 
     @GetMapping("service-providers")
 //    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<ServiceProviderResource>> getServiceProviders() {
-        // TODO make a service
         return ResponseEntity.ok(serviceProviderService.getServiceProviders());
     }
 
