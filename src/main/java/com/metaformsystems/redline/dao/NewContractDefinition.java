@@ -1,7 +1,6 @@
 package com.metaformsystems.redline.dao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.metaformsystems.redline.model.Criterion;
 
 import java.util.Set;
 

@@ -5,7 +5,7 @@ import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
 import com.metaformsystems.redline.dao.VPAResource;
 import com.metaformsystems.redline.model.Dataspace;
-import com.metaformsystems.redline.model.ParticipantProfile;
+import com.metaformsystems.redline.model.Participant;
 import com.metaformsystems.redline.model.ServiceProvider;
 import com.metaformsystems.redline.model.Tenant;
 import com.metaformsystems.redline.repository.DataspaceRepository;
@@ -287,7 +287,7 @@ class TenantServiceIntegrationTest {
         var participantId = "participant-456";
         var expectedContextId = "ctx-789";
 
-        var entity = new ParticipantProfile();
+        var entity = new Participant();
         entity.setCorrelationId(participantId);
         entity.setTenant(tenant);
         entity = participantRepository.save(entity);
@@ -321,7 +321,7 @@ class TenantServiceIntegrationTest {
         tenant.setCorrelationId(tenantId);
         var participantId = "participant-456";
         var expectedContextId = "ctx-789";
-        var entity = new ParticipantProfile();
+        var entity = new Participant();
         entity.setCorrelationId(participantId);
         entity.setTenant(tenant);
         entity = participantRepository.save(entity);
@@ -369,7 +369,7 @@ class TenantServiceIntegrationTest {
 
         mockWebServer.enqueue(new MockResponse().setBody(vaultResponse).addHeader("Content-Type", "application/json"));
 
-        var entity = new ParticipantProfile();
+        var entity = new Participant();
         entity.setParticipantContextId("test-participant-context-id");
         entity = participantRepository.save(entity);
 

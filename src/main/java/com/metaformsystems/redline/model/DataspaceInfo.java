@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- *
+ * Metadata associated with a {@link Participant} for a specific {@link Dataspace}.
  */
 @Entity
 @Table(name = "dataspace_info")

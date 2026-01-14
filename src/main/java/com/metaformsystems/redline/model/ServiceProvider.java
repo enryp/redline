@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * An organization that provides services to tenants.
+ * An organization that provides dataspace services (e.g., a connector and credential service) to tenants.
  */
 @Entity
 @Table(name = "providers")

@@ -1,4 +1,4 @@
-package com.metaformsystems.redline.model;
+package com.metaformsystems.redline.dao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

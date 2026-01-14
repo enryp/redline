@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Represents an organization managed by a {@link ServiceProvider}. A tenant may have multiple {@link ParticipantProfile}s
+ * Represents an organization managed by a {@link ServiceProvider}. A tenant may have multiple {@link Participant}s
  * if it uses unique identifiers for different dataspaces.
  */
 @Entity
@@ -28,7 +28,7 @@ public class Tenant extends VersionedEntity {
     private ServiceProvider serviceProvider;
 
     @OneToMany(mappedBy = "tenant")
-    private Set<ParticipantProfile> participantProfiles = new HashSet<>();
+    private Set<Participant> participants = new HashSet<>();
 
     private String correlationId;
 
@@ -56,11 +56,11 @@ public class Tenant extends VersionedEntity {
         this.serviceProvider = serviceProvider;
     }
 
-    public Set<ParticipantProfile> getParticipants() {
-        return participantProfiles;
+    public Set<Participant> getParticipants() {
+        return participants;
     }
 
-    public void setParticipants(Set<ParticipantProfile> participantProfiles) {
-        this.participantProfiles = participantProfiles;
+    public void setParticipants(Set<Participant> participants) {
+        this.participants = participants;
     }
 }

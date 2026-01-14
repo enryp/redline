@@ -6,7 +6,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 
 /**
- * A virtual resource.
+ * A virtual resource associated with a {@link Participant}.
  */
 @Entity
 @Table(name = "virtual_participant_agents")

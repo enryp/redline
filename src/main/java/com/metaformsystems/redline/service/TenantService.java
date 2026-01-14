@@ -6,13 +6,13 @@ import com.metaformsystems.redline.client.tenantmanager.v1alpha1.dto.V1Alpha1New
 import com.metaformsystems.redline.client.tenantmanager.v1alpha1.dto.V1Alpha1ParticipantProfile;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
-import com.metaformsystems.redline.dao.ParticipantProfileResource;
+import com.metaformsystems.redline.dao.ParticipantResource;
 import com.metaformsystems.redline.dao.TenantResource;
 import com.metaformsystems.redline.dao.VPAResource;
 import com.metaformsystems.redline.model.ClientCredentials;
 import com.metaformsystems.redline.model.DataspaceInfo;
 import com.metaformsystems.redline.model.DeploymentState;
-import com.metaformsystems.redline.model.ParticipantProfile;
+import com.metaformsystems.redline.model.Participant;
 import com.metaformsystems.redline.model.Tenant;
 import com.metaformsystems.redline.model.VirtualParticipantAgent;
 import com.metaformsystems.redline.repository.ParticipantRepository;
@@ -73,7 +73,7 @@ public class TenantService {
         tenant.setServiceProvider(serviceProviderRepository.getReferenceById(serviceProviderId));
 
         // Create participant with dataspaces
-        var participant = new ParticipantProfile();
+        var participant = new Participant();
         participant.setIdentifier(registration.tenantName());
         participant.setTenant(tenant);
 
@@ -96,7 +96,7 @@ public class TenantService {
     }
 
     @Transactional
-    public ParticipantProfileResource deployParticipant(NewParticipantDeployment deployment) {
+    public ParticipantResource deployParticipant(NewParticipantDeployment deployment) {
         var participant = participantRepository.findById(deployment.participantId())
                 .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + deployment.participantId()));
 
@@ -165,7 +165,7 @@ public class TenantService {
     }
 
     @Transactional
-    public ParticipantProfileResource getParticipant(Long id) {
+    public ParticipantResource getParticipant(Long id) {
         return participantRepository.findById(id)
                 .map(this::toParticipantResource)
                 .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + id));
@@ -173,7 +173,7 @@ public class TenantService {
     }
 
     @NonNull
-    private ParticipantProfileResource toParticipantResource(ParticipantProfile saved) {
+    private ParticipantResource toParticipantResource(Participant saved) {
         var vpas = saved.getAgents().stream().map(vpa -> new VPAResource(vpa.getId(),
                 VPAResource.Type.valueOf(vpa.getType().name()),
                 com.metaformsystems.redline.dao.DeploymentState.valueOf(vpa.getState().name()))).toList();
@@ -184,7 +184,7 @@ public class TenantService {
                         i.getAgreementTypes(),
                         i.getRoles()))
                 .toList();
-        return new ParticipantProfileResource(saved.getId(), saved.getIdentifier(), vpas, infos);
+        return new ParticipantResource(saved.getId(), saved.getIdentifier(), vpas, infos);
     }
 
 

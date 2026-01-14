@@ -4,7 +4,7 @@ import com.metaformsystems.redline.dao.DataspaceResource;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewServiceProvider;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
-import com.metaformsystems.redline.dao.ParticipantProfileResource;
+import com.metaformsystems.redline.dao.ParticipantResource;
 import com.metaformsystems.redline.dao.ServiceProviderResource;
 import com.metaformsystems.redline.model.Tenant;
 import com.metaformsystems.redline.repository.ServiceProviderRepository;
@@ -64,7 +64,7 @@ public class RedlineController {
 
     @PostMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/deployments")
 //    @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ParticipantProfileResource> deployParticipant(@RequestBody NewParticipantDeployment deployment) {
+    public ResponseEntity<ParticipantResource> deployParticipant(@RequestBody NewParticipantDeployment deployment) {
         var participant = tenantService.deployParticipant(deployment);
         return ResponseEntity.ok(participant);
     }

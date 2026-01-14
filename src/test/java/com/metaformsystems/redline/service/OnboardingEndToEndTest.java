@@ -8,7 +8,7 @@ import com.metaformsystems.redline.dao.NewContractDefinition;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewPolicyDefinition;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
-import com.metaformsystems.redline.model.Criterion;
+import com.metaformsystems.redline.dao.Criterion;
 import com.metaformsystems.redline.model.Dataspace;
 import com.metaformsystems.redline.model.ServiceProvider;
 import com.metaformsystems.redline.repository.DataspaceRepository;

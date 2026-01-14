@@ -16,7 +16,7 @@ import java.util.Set;
  */
 @Entity
 @Table(name = "participants")
-public class ParticipantProfile extends VersionedEntity {
+public class Participant extends VersionedEntity {
 
     private String identifier;
     private String correlationId;

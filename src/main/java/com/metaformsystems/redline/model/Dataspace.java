@@ -11,7 +11,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- *
+ * Represents a dataspace ecosystem. A dataspace has one or more {@link DataspaceProfile}s. It may have multiple profiles
+ * if more than one protocol version or policy set is supported.
  */
 @Entity
 @Table(name = "dataspaces")
