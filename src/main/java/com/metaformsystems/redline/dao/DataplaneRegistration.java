@@ -6,6 +6,7 @@ public class DataplaneRegistration {
     private List<String> allowedSourceTypes;
     private List<String> allowedTransferTypes;
     private String url;
+    private List<String> destinationProvisionTypes;
 
     public List<String> getAllowedSourceTypes() {
         return allowedSourceTypes;
@@ -31,8 +32,16 @@ public class DataplaneRegistration {
         this.url = url;
     }
 
+    public List<String> getDestinationProvisionTypes() {
+        return destinationProvisionTypes;
+    }
+
+    public void setDestinationProvisionTypes(List<String> destinationProvisionTypes) {
+        this.destinationProvisionTypes = destinationProvisionTypes;
+    }
+
     public static final class Builder {
-        private DataplaneRegistration dataplaneRegistration;
+        private final DataplaneRegistration dataplaneRegistration;
 
         private Builder() {
             dataplaneRegistration = new DataplaneRegistration();
@@ -59,6 +68,11 @@ public class DataplaneRegistration {
 
         public DataplaneRegistration build() {
             return dataplaneRegistration;
+        }
+
+        public Builder destinationProvisionTypes(List<String> httpData) {
+            dataplaneRegistration.setDestinationProvisionTypes(httpData);
+            return this;
         }
     }
 }

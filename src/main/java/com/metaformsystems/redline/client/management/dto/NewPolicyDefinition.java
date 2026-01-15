@@ -1,4 +1,18 @@
-package com.metaformsystems.redline.dao;
+/*
+ *  Copyright (c) 2026 Metaform Systems, Inc.
+ *
+ *  This program and the accompanying materials are made available under the
+ *  terms of the Apache License, Version 2.0 which is available at
+ *  https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  SPDX-License-Identifier: Apache-2.0
+ *
+ *  Contributors:
+ *       Metaform Systems, Inc. - initial API and implementation
+ *
+ */
+
+package com.metaformsystems.redline.client.management.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -123,7 +137,7 @@ public class NewPolicyDefinition {
     }
 
     public static final class Builder {
-        private NewPolicyDefinition newPolicyDefinition;
+        private final NewPolicyDefinition newPolicyDefinition;
 
         private Builder() {
             newPolicyDefinition = new NewPolicyDefinition();

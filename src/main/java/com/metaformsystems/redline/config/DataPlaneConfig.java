@@ -6,14 +6,14 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
-public class ControlPlaneConfig {
-    @Value("${controlplane.url:http://cp.localhost/api/mgmt}")
-    private String controlPlaneUrl;
+public class DataPlaneConfig {
+    @Value("${dataplane.url:http://dp.localhost}")
+    private String dataPlaneUrl;
 
     @Bean
-    public WebClient controlPlaneWebClient(WebClient.Builder webClientBuilder) {
+    public WebClient dataPlaneWebClient(WebClient.Builder webClientBuilder) {
         return webClientBuilder
-                .baseUrl(controlPlaneUrl)
+                .baseUrl(dataPlaneUrl)
                 .build();
     }
 }
