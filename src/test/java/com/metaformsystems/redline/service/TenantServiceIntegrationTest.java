@@ -1,10 +1,11 @@
 package com.metaformsystems.redline.service;
 
-import com.metaformsystems.redline.client.tenantmanager.v1alpha1.TenantManagerClient;
+import com.metaformsystems.redline.client.TokenProvider;
 import com.metaformsystems.redline.dao.NewDataspaceInfo;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
 import com.metaformsystems.redline.dao.VPAResource;
+import com.metaformsystems.redline.model.ClientCredentials;
 import com.metaformsystems.redline.model.Dataspace;
 import com.metaformsystems.redline.model.Participant;
 import com.metaformsystems.redline.model.PartnerReference;
@@ -16,7 +17,7 @@ import com.metaformsystems.redline.repository.ServiceProviderRepository;
 import com.metaformsystems.redline.repository.TenantRepository;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,61 +25,69 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.TestSocketUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static com.metaformsystems.redline.TestData.PARTICIPANT_PROFILE_RESPONSE;
+import static com.metaformsystems.redline.TestData.VAULT_CREDENTIAL_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 @ActiveProfiles("dev")
 @Transactional
 class TenantServiceIntegrationTest {
 
-    private static MockWebServer mockWebServer;
-
+    static final String mockBackEndHost = "localhost";
+    static final int mockBackEndPort = TestSocketUtils.findAvailableTcpPort();
+    private static final String CATALOG_RESPONSE = """
+            {
+                "@type": "dcat:Catalog",
+                "dcat:dataset": [],
+                "dcat:service": []
+            }
+            """;
+    private MockWebServer mockWebServer;
     @Autowired
     private TenantService tenantService;
-
     @Autowired
     private TenantRepository tenantRepository;
-
     @Autowired
     private ParticipantRepository participantRepository;
-
     @Autowired
     private DataspaceRepository dataspaceRepository;
-
     @Autowired
     private ServiceProviderRepository serviceProviderRepository;
-
-    @Autowired
-    private TenantManagerClient tenantManagerClient;
-
     private ServiceProvider serviceProvider;
     private Dataspace dataspace;
+    @MockitoBean
+    private TokenProvider tokenProvider;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) throws IOException {
-        mockWebServer = new MockWebServer();
-        mockWebServer.start();
-        registry.add("tenant-manager.url", () -> mockWebServer.url("/").toString());
-        registry.add("vault.url", () -> mockWebServer.url("/").toString());
+        registry.add("tenant-manager.url", () -> "http://%s:%s/tm".formatted(mockBackEndHost, mockBackEndPort));
+        registry.add("vault.url", () -> "http://%s:%s/vault".formatted(mockBackEndHost, mockBackEndPort));
+        registry.add("controlplane.url", () -> "http://%s:%s/cp".formatted(mockBackEndHost, mockBackEndPort));
     }
 
-    @AfterAll
-    static void tearDown() throws IOException {
+    @AfterEach
+    void tearDown() throws IOException {
         if (mockWebServer != null) {
             mockWebServer.shutdown();
         }
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         // Create test data
         serviceProvider = new ServiceProvider();
         serviceProvider.setName("Test Provider");
@@ -88,21 +97,19 @@ class TenantServiceIntegrationTest {
         dataspace.setName("Test Dataspace");
         dataspace = dataspaceRepository.save(dataspace);
 
-
+        mockWebServer = new MockWebServer();
+        mockWebServer.start(InetAddress.getByName(mockBackEndHost), mockBackEndPort);
+        when(tokenProvider.getToken(anyString(), anyString(), anyString())).thenReturn("mock-token");
     }
-
 
     @Test
     void shouldRegisterTenant() {
-        // Arrange
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
 
-        // Act
         var tenantResource = tenantService.registerTenant(serviceProvider.getId(), registration);
         var tenant = tenantRepository.findById(tenantResource.id()).orElseThrow();
 
-        // Assert
         assertThat(tenantResource).isNotNull();
         assertThat(tenant.getName()).isEqualTo("Test Tenant");
         assertThat(tenant.getServiceProvider()).isEqualTo(serviceProvider);
@@ -117,7 +124,7 @@ class TenantServiceIntegrationTest {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     void shouldDeployParticipant() {
-        // Arrange
+
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
         var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
@@ -175,10 +182,10 @@ class TenantServiceIntegrationTest {
 
         var deployment = new NewParticipantDeployment(participant.id(), "did:web:example.com:participant");
 
-        // Act
+
         var result = tenantService.deployParticipant(deployment);
 
-        // Assert
+
         assertThat(result).isNotNull();
         assertThat(result.identifier()).isEqualTo("did:web:example.com:participant");
         assertThat(result.agents()).hasSize(3);
@@ -198,31 +205,34 @@ class TenantServiceIntegrationTest {
 
     @Test
     void shouldGetParticipant() {
-        // Arrange
+
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
         var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
         var participant = tenant.participants().iterator().next();
 
-        // Act
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("content-type", "application/json").setBody(PARTICIPANT_PROFILE_RESPONSE));
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("content-type", "application/json").setBody(VAULT_CREDENTIAL_RESPONSE));
+
+
         var result = tenantService.getParticipant(participant.id());
 
-        // Assert
+
         assertThat(result).isNotNull();
         assertThat(result.identifier()).isEqualTo("Test Tenant");
     }
 
     @Test
     void shouldGetTenant() {
-        // Arrange
+
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
         var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
 
-        // Act
+
         var result = tenantService.getTenant(tenant.id());
 
-        // Assert
+
         assertThat(result).isNotNull();
         assertThat(result.name()).isEqualTo("Test Tenant");
         assertThat(result.participants()).hasSize(1);
@@ -231,7 +241,7 @@ class TenantServiceIntegrationTest {
 
     @Test
     void shouldDeployParticipantWithExistingTenantCorrelationId() {
-        // Arrange
+
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
         var tenantResource = tenantService.registerTenant(serviceProvider.getId(), registration);
@@ -280,17 +290,17 @@ class TenantServiceIntegrationTest {
 
         var deployment = new NewParticipantDeployment(participant.id(), "did:web:example.com:participant2");
 
-        // Act
+
         var result = tenantService.deployParticipant(deployment);
 
-        // Assert
+
         assertThat(result).isNotNull();
         assertThat(result.identifier()).isEqualTo("did:web:example.com:participant2");
     }
 
     @Test
     void shouldGetParticipantContextId() {
-        // Arrange
+
         var tenantId = "tenant-123";
         var tenant = new Tenant();
         tenant.setCorrelationId(tenantId);
@@ -316,16 +326,16 @@ class TenantServiceIntegrationTest {
                         """.formatted(participantId, expectedContextId))
                 .addHeader("Content-Type", "application/json"));
 
-        // Act
+
         var result = tenantService.getParticipantContextId(entity.getId());
 
-        // Assert
+
         assertThat(result).isEqualTo(expectedContextId);
     }
 
     @Test
     void shouldGetParticipantContextId_notReadyYet() {
-        // Arrange
+
         var tenantId = "tenant-123";
         var tenant = new Tenant();
         tenant.setCorrelationId(tenantId);
@@ -343,10 +353,10 @@ class TenantServiceIntegrationTest {
                         """.formatted(participantId, expectedContextId))
                 .addHeader("Content-Type", "application/json"));
 
-        // Act
+
         var result = tenantService.getParticipantContextId(entity.getId());
 
-        // Assert
+
         assertThat(result).isNull();
     }
 
@@ -404,7 +414,7 @@ class TenantServiceIntegrationTest {
 
     @Test
     void shouldGetPartnerReferences() {
-        // Arrange
+
         var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
         var registration = new NewTenantRegistration("Test Tenant", infos);
         var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
@@ -419,12 +429,78 @@ class TenantServiceIntegrationTest {
         dataspaceInfo.setPartners(references);
         participantRepository.save(participant);
 
-        // Act
+
         var result = tenantService.getPartnerReferences(participantId, dataspace.getId());
 
-        // Assert
+
         assertThat(result).hasSize(2);
         assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner1.com") && ref.nickname().equals("Partner One"));
         assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner2.com") && ref.nickname().equals("Partner Two"));
+    }
+
+    @Test
+    void shouldRequestCatalog_andCacheIt() throws InterruptedException {
+
+        var participant = createAndSaveParticipant("ctx-1", "did:web:me");
+        var counterParty = "did:web:them";
+
+        // First call: Expect fetch from remote
+        mockWebServer.enqueue(new MockResponse()
+                .setBody(CATALOG_RESPONSE)
+                .addHeader("Content-Type", "application/json"));
+
+
+        var catalog1 = tenantService.requestCatalog(participant.getId(), counterParty, "max-age=3600");
+        var catalog2 = tenantService.requestCatalog(participant.getId(), counterParty, "max-age=3600");
+
+
+        assertThat(catalog1).isNotNull();
+        assertThat(catalog2).isNotNull();
+        // only 1 catalog request, second one is cached
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(1);
+    }
+
+    @Test
+    void shouldRequestCatalog_andBypassCacheWithNoCache() {
+        var participant = createAndSaveParticipant("ctx-2", "did:web:me");
+        var counterParty = "did:web:them";
+
+        mockWebServer.enqueue(new MockResponse().setBody(CATALOG_RESPONSE).addHeader("Content-Type", "application/json"));
+        mockWebServer.enqueue(new MockResponse().setBody(CATALOG_RESPONSE).addHeader("Content-Type", "application/json"));
+
+        tenantService.requestCatalog(participant.getId(), counterParty, "max-age=3600");
+        tenantService.requestCatalog(participant.getId(), counterParty, "no-cache");
+
+        // both requests hit the remote catalog, no cache
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
+    }
+
+    @Test
+    void shouldRequestCatalog_andRefreshWhenMaxAgeIsZero() {
+        var participant = createAndSaveParticipant("ctx-3", "did:web:me");
+        var counterParty = "did:web:them";
+
+        mockWebServer.enqueue(new MockResponse().setBody(CATALOG_RESPONSE).addHeader("Content-Type", "application/json"));
+        mockWebServer.enqueue(new MockResponse().setBody(CATALOG_RESPONSE).addHeader("Content-Type", "application/json"));
+
+        tenantService.requestCatalog(participant.getId(), counterParty, "max-age=3600");
+        // max-age=0 should trigger expiration check effectively immediately or force refresh logic
+        tenantService.requestCatalog(participant.getId(), counterParty, "max-age=0");
+
+        assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
+    }
+
+    private Participant createAndSaveParticipant(String contextId, String identifier) {
+        var p = new Participant();
+        p.setParticipantContextId(contextId);
+        p.setIdentifier(identifier);
+        p.setClientCredentials(new ClientCredentials("client-id", "client-secret"));
+        p.setTenant(serviceProvider.getTenants().stream().findFirst().orElseGet(() -> {
+            var t = new Tenant();
+            t.setName("Test");
+            t.setServiceProvider(serviceProvider);
+            return tenantRepository.save(t);
+        }));
+        return participantRepository.save(p);
     }
 }

@@ -47,6 +47,7 @@ class DataPlaneApiClientIntegrationTest {
         mockWebServer = new MockWebServer();
         mockWebServer.start();
         registry.add("dataplane.url", () -> mockWebServer.url("/").toString());
+        registry.add("dataplane.internal.url", () -> mockWebServer.url("/").toString());
     }
 
     @AfterAll
@@ -107,12 +108,12 @@ class DataPlaneApiClientIntegrationTest {
         assertThat(result.get(1).contentType()).isEqualTo("image/png");
 
         var request = mockWebServer.takeRequest();
-        assertThat(request.getPath()).isEqualTo("/app/internal/api/control/certs/request");
+        assertThat(request.getPath()).isEqualTo("/certs/request");
         assertThat(request.getMethod()).isEqualTo("POST");
     }
 
     @Test
-    void shouldQueryProviderFiles() throws InterruptedException {
+    void shouldListPublicFiles() throws InterruptedException {
         // Arrange
         var querySpec = QuerySpec.Builder.aQuerySpecDto()
                 .limit(10)
@@ -134,7 +135,7 @@ class DataPlaneApiClientIntegrationTest {
                 .addHeader("Content-Type", "application/json"));
 
         // Act
-        var result = dataPlaneApiClient.queryProviderFiles(participantContextId, querySpec);
+        var result = dataPlaneApiClient.listPublicFiles(participantContextId, querySpec);
 
         // Assert
         assertThat(result).hasSize(1);
@@ -143,7 +144,7 @@ class DataPlaneApiClientIntegrationTest {
         assertThat(result.getFirst().properties()).containsEntry("filename", "readme.txt");
 
         var request = mockWebServer.takeRequest();
-        assertThat(request.getPath()).isEqualTo("/app/internal/api/control/certs/request");
+        assertThat(request.getPath()).isEqualTo("/certs/request");
         assertThat(request.getMethod()).isEqualTo("POST");
     }
 
@@ -164,7 +165,7 @@ class DataPlaneApiClientIntegrationTest {
         assertThat(result).isEqualTo(expectedFileData);
 
         var request = mockWebServer.takeRequest();
-        assertThat(request.getPath()).isEqualTo("/app/public/api/data/certs/" + fileId);
+        assertThat(request.getPath()).isEqualTo("/certs/" + fileId);
         assertThat(request.getMethod()).isEqualTo("GET");
     }
 
@@ -184,6 +185,6 @@ class DataPlaneApiClientIntegrationTest {
         assertThat(result).isNullOrEmpty();
 
         var request = mockWebServer.takeRequest();
-        assertThat(request.getPath()).isEqualTo("/app/public/api/data/certs/" + fileId);
+        assertThat(request.getPath()).isEqualTo("/certs/" + fileId);
     }
 }

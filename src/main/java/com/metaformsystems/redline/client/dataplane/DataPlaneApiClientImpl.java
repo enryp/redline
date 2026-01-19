@@ -36,22 +36,24 @@ import java.util.Map;
 
 @Component
 public class DataPlaneApiClientImpl implements DataPlaneApiClient {
-    private final WebClient dataPlaneWebClient;
+    private final WebClient dataPlanePublicClient;
+    private final WebClient dataPlaneInternalClient;
     private final ParticipantRepository participantRepository;
     private final TokenProvider tokenProvider;
 
-    public DataPlaneApiClientImpl(WebClient dataPlaneWebClient, ParticipantRepository participantRepository, TokenProvider tokenProvider) {
-        this.dataPlaneWebClient = dataPlaneWebClient.mutate()
+    public DataPlaneApiClientImpl(WebClient dataPlanePublicClient, WebClient dataPlaneInternalClient, ParticipantRepository participantRepository, TokenProvider tokenProvider) {
+        this.dataPlanePublicClient = dataPlanePublicClient.mutate()
                 .exchangeStrategies(ExchangeStrategies.builder()
                         .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(50 * 1024 * 1024))
                         .build())
                 .build();
+        this.dataPlaneInternalClient = dataPlaneInternalClient;
         this.participantRepository = participantRepository;
         this.tokenProvider = tokenProvider;
     }
 
     @Override
-    public UploadResponse uploadMultipart(String participantContextId, Map<String, String> metadata, InputStream data) {
+    public UploadResponse uploadMultipart(String participantContextId, Map<String, Object> metadata, InputStream data) {
         var bodyBuilder = new MultipartBodyBuilder();
 
         // Add metadata fields
@@ -64,8 +66,8 @@ public class DataPlaneApiClientImpl implements DataPlaneApiClient {
                 .part("file", new InputStreamResource(data))
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-        return dataPlaneWebClient.post()
-                .uri("/app/internal/api/control/certs")
+        return dataPlaneInternalClient.post()
+                .uri("/certs")
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .contentType(MediaType.MULTIPART_FORM_DATA)
                 .bodyValue(bodyBuilder.build())
@@ -76,8 +78,8 @@ public class DataPlaneApiClientImpl implements DataPlaneApiClient {
 
     @Override
     public List<UploadResponse> getAllUploads() {
-        return dataPlaneWebClient.post()
-                .uri("/app/internal/api/control/certs/request")
+        return dataPlaneInternalClient.post()
+                .uri("/certs/request")
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<UploadResponse>>() {
                 })
@@ -85,9 +87,9 @@ public class DataPlaneApiClientImpl implements DataPlaneApiClient {
     }
 
     @Override
-    public List<UploadResponse> queryProviderFiles(String participantContextId, QuerySpec querySpec) {
-        return dataPlaneWebClient.post()
-                .uri("/app/internal/api/control/certs/request")
+    public List<UploadResponse> listPublicFiles(String participantContextId, QuerySpec querySpec) {
+        return dataPlanePublicClient.post()
+                .uri("/certs/request")
                 .bodyValue(querySpec)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<UploadResponse>>() {
@@ -98,8 +100,8 @@ public class DataPlaneApiClientImpl implements DataPlaneApiClient {
     @Override
     public byte[] downloadFile(String authToken, String fileId) {
 
-        Flux<DataBuffer> dataBufferFlux = dataPlaneWebClient.get()
-                .uri("/app/public/api/data/certs/" + fileId)
+        Flux<DataBuffer> dataBufferFlux = dataPlanePublicClient.get()
+                .uri("/certs/" + fileId)
                 .header("Authorization", authToken)
                 .retrieve()
                 .bodyToFlux(DataBuffer.class);

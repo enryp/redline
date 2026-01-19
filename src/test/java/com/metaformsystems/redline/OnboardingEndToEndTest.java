@@ -83,7 +83,8 @@ public class OnboardingEndToEndTest {
         registry.add("vault.url", () -> "http://vault.vps.beardyinc.com");
         registry.add("identityhub.url", () -> "http://ih.vps.beardyinc.com/cs");
         registry.add("controlplane.url", () -> "http://cp.vps.beardyinc.com/api/mgmt");
-        registry.add("dataplane.url", () -> "http://dp.vps.beardyinc.com");
+        registry.add("dataplane.internal.url", () -> "http://dp.vps.beardyinc.com/app/internal/api/control");
+        registry.add("dataplane.url", () -> "http://dp.vps.beardyinc.com/app/public/api/data");
         registry.add("keycloak.tokenurl", () -> "http://auth.vps.beardyinc.com/realms/edcv/protocol/openid-connect/token");
     }
 
@@ -129,7 +130,7 @@ public class OnboardingEndToEndTest {
         registerDataPlane(providerInfo.contextId());
 
         // now acting as the consumer, getting the provider's catalog
-        var catalog = managementApiClient.getCatalog(consumerInfo.contextId(), providerInfo.webDid());
+        var catalog = tenantService.requestCatalog(consumerInfo.id(), providerInfo.webDid(), "no-cache");
 
         // get the asset with id "todo_asset"
         var dataset = catalog.getDataset().stream().filter(ds -> ds.getId().equals(todoAssetId)).findFirst().orElseThrow();
@@ -247,7 +248,7 @@ public class OnboardingEndToEndTest {
         var clientCredentials = tenantService.getClientCredentials(participantContextId.get());
         assertThat(clientCredentials).isNotNull();
 
-        return new ParticipantInfo(participantContextId.get(), webDid);
+        return new ParticipantInfo(participantContextId.get(), webDid, participant.id());
     }
 
     private void registerDataPlane(String participantContextId) {
@@ -291,6 +292,6 @@ public class OnboardingEndToEndTest {
                 .build());
     }
 
-    private record ParticipantInfo(String contextId, String webDid) {
+    private record ParticipantInfo(String contextId, String webDid, Long id) {
     }
 }

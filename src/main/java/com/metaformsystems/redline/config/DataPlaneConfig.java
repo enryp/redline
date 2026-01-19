@@ -7,13 +7,23 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
 public class DataPlaneConfig {
-    @Value("${dataplane.url:http://dp.localhost}")
-    private String dataPlaneUrl;
+    @Value("${dataplane.url:http://dp.localhost/app/public/api/data}")
+    private String dataPlanePublicUrl;
+
+    @Value("${dataplane.internal.url:http://dp.localhost/app/internal/api/control}")
+    private String dataPlaneInternalUrl;
 
     @Bean
-    public WebClient dataPlaneWebClient(WebClient.Builder webClientBuilder) {
+    public WebClient dataPlanePublicClient(WebClient.Builder webClientBuilder) {
         return webClientBuilder
-                .baseUrl(dataPlaneUrl)
+                .baseUrl(dataPlanePublicUrl)
+                .build();
+    }
+
+    @Bean
+    public WebClient dataPlaneInternalClient(WebClient.Builder webClientBuilder) {
+        return webClientBuilder
+                .baseUrl(dataPlaneInternalUrl)
                 .build();
     }
 }

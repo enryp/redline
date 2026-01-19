@@ -28,7 +28,7 @@ public interface DataPlaneApiClient {
      * @param metadata optional metadata to describe the file
      * @param data     an input stream of the file data
      */
-    UploadResponse uploadMultipart(String participantContextId, Map<String, String> metadata, InputStream data);
+    UploadResponse uploadMultipart(String participantContextId, Map<String, Object> metadata, InputStream data);
 
     /**
      * This is used on the provider side to list all uploaded files
@@ -38,7 +38,7 @@ public interface DataPlaneApiClient {
     /**
      * This method is used on the consumer side to query all files that are offered on the network
      */
-    List<UploadResponse> queryProviderFiles(String participantContextId, QuerySpec querySpec);
+    List<UploadResponse> listPublicFiles(String participantContextId, QuerySpec querySpec);
 
     /**
      * Downloads a file from the provider's dataplane

@@ -23,22 +23,23 @@ public class DataspaceInfo extends VersionedEntity {
 
     @ElementCollection
     @CollectionTable(
-        name = "dataspace_info_agreement_types",
-        joinColumns = @JoinColumn(name = "dataspace_info_id")
+            name = "dataspace_info_agreement_types",
+            joinColumns = @JoinColumn(name = "dataspace_info_id")
     )
     @Column(name = "agreement_type")
     private List<String> agreementTypes = new ArrayList<>();
     @ElementCollection
     @CollectionTable(
-        name = "dataspace_info_roles",
-        joinColumns = @JoinColumn(name = "dataspace_info_id")
+            name = "dataspace_info_roles",
+            joinColumns = @JoinColumn(name = "dataspace_info_id")
     )
     @Column(name = "role")
     private List<String> roles = new ArrayList<>();
+
     @ElementCollection
     @CollectionTable(
-        name = "dataspace_info_partners",
-        joinColumns = @JoinColumn(name = "dataspace_info_id")
+            name = "dataspace_info_partners",
+            joinColumns = @JoinColumn(name = "dataspace_info_id")
     )
     private List<PartnerReference> partners = new ArrayList<>();
 

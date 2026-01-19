@@ -1,5 +1,6 @@
 package com.metaformsystems.redline.model;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -27,7 +28,7 @@ public class Tenant extends VersionedEntity {
     @JoinColumn(name = "service_provider_id")
     private ServiceProvider serviceProvider;
 
-    @OneToMany(mappedBy = "tenant")
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Participant> participants = new HashSet<>();
 
     private String correlationId;
@@ -62,5 +63,15 @@ public class Tenant extends VersionedEntity {
 
     public void setParticipants(Set<Participant> participants) {
         this.participants = participants;
+    }
+
+    public void addParticipant(Participant participant) {
+        participants.add(participant);
+        participant.setTenant(this);
+    }
+
+    public void removeParticipant(Participant participant) {
+        participants.remove(participant);
+        participant.setTenant(null);
     }
 }
