@@ -20,6 +20,7 @@ import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
 import com.metaformsystems.redline.client.management.dto.NewPolicyDefinition;
 import com.metaformsystems.redline.client.management.dto.QuerySpec;
+import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.dao.DataplaneRegistration;
 
 import java.util.List;
@@ -66,4 +67,6 @@ public interface ManagementApiClient {
     Object getData(String participantContextId, String counterPartyId, String offerId);
 
     Map<String, String> setupTransfer(String participantContextId, String policyId, String providerId);
+
+    List<TransferProcess> listTransferProcesses(String participantContextId);
 }

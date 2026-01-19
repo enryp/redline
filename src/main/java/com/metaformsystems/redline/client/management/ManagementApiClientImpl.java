@@ -21,6 +21,7 @@ import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
 import com.metaformsystems.redline.client.management.dto.NewPolicyDefinition;
 import com.metaformsystems.redline.client.management.dto.QuerySpec;
+import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.dao.DataplaneRegistration;
 import com.metaformsystems.redline.model.ClientCredentials;
 import com.metaformsystems.redline.repository.ParticipantRepository;
@@ -134,7 +135,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
     @Override
     public List<Map<String, Object>> queryContractDefinitions(String participantContextId, QuerySpec query) {
         return controlPlaneWebClient.post()
-                .uri("/v4alpha/participants/{participantContextId}/contractdefinitions/request", encode(participantContextId))
+                .uri("/v4alpha/participants/{participantContextId}/contractdefinitions/request", participantContextId)
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .bodyValue(query)
                 .retrieve()
@@ -146,7 +147,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
     @Override
     public void deleteContractDefinition(String participantContextId, String contractDefinitionId) {
         controlPlaneWebClient.delete()
-                .uri("/v4alpha/participants/{participantContextId}/contractdefinitions/{id}", encode(participantContextId), contractDefinitionId)
+                .uri("/v4alpha/participants/{participantContextId}/contractdefinitions/{id}", participantContextId, contractDefinitionId)
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .retrieve()
                 .toBodilessEntity()
@@ -156,7 +157,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
     @Override
     public void initiateContractNegotiation(String participantContextId, Map<String, Object> negotiationRequest) {
         controlPlaneWebClient.post()
-                .uri("/v4alpha/participants/{participantContextId}/contractnegotiations", encode(participantContextId))
+                .uri("/v4alpha/participants/{participantContextId}/contractnegotiations", participantContextId)
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .bodyValue(negotiationRequest)
                 .retrieve()
@@ -167,7 +168,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
     @Override
     public Map<String, Object> getContractNegotiation(String participantContextId, String negotiationId) {
         return controlPlaneWebClient.get()
-                .uri("/v4alpha/participants/{participantContextId}/contractnegotiations/{id}", encode(participantContextId), negotiationId)
+                .uri("/v4alpha/participants/{participantContextId}/contractnegotiations/{id}", participantContextId, negotiationId)
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
@@ -250,6 +251,16 @@ public class ManagementApiClientImpl implements ManagementApiClient {
                 .block();
     }
 
+    @Override
+    public List<TransferProcess> listTransferProcesses(String participantContextId) {
+        return controlPlaneWebClient.post()
+                .uri("/v4alpha/participants/{participantContextId}/transferprocesses/request", participantContextId)
+                .header("Authorization", "Bearer " + getToken(participantContextId))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<TransferProcess>>() {
+                })
+                .block();
+    }
 
     private String getToken(String participantContextId) {
         var participantProfile = participantRepository.findByParticipantContextId(participantContextId)

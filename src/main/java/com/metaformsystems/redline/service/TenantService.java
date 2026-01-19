@@ -6,6 +6,7 @@ import com.metaformsystems.redline.client.management.ManagementApiClient;
 import com.metaformsystems.redline.client.management.dto.Catalog;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
+import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.client.tenantmanager.v1alpha1.TenantManagerClient;
 import com.metaformsystems.redline.client.tenantmanager.v1alpha1.dto.V1Alpha1NewTenant;
 import com.metaformsystems.redline.client.tenantmanager.v1alpha1.dto.V1Alpha1ParticipantProfile;
@@ -301,6 +302,15 @@ public class TenantService {
         }
 
         return catalogEntry.value();
+    }
+
+    @Transactional
+    public List<TransferProcess> listTransferProcesses(Long participantId) {
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participantContextId = participant.getParticipantContextId();
+
+        return managementApiClient.listTransferProcesses(participantContextId);
+
     }
 
     /**

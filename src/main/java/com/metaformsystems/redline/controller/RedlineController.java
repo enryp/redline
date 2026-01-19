@@ -1,6 +1,7 @@
 package com.metaformsystems.redline.controller;
 
 import com.metaformsystems.redline.client.management.dto.Catalog;
+import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.dao.DataspaceResource;
 import com.metaformsystems.redline.dao.FileResource;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
@@ -244,5 +245,22 @@ public class RedlineController {
         return ResponseEntity.ok(catalog);
     }
 
+    @GetMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/transfer-processes")
+    @Operation(summary = "List transfer processes", description = "Retrieves a list of all transfer processes associated with a specific participant")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved transfer process list. May be empty."),
+            @ApiResponse(responseCode = "404", description = "Service provider, tenant, or participant not found"),
+            @ApiResponse(responseCode = "500", description = "Internal server error occurred while processing the request")
+    })
+    @Parameter(name = "providerId", description = "Database ID of the service provider", required = true)
+    @Parameter(name = "tenantId", description = "Database ID of the tenant", required = true)
+    @Parameter(name = "participantId", description = "Database ID of the participant", required = true)
+
+    //    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<TransferProcess>> listTransferProcesses(@PathVariable Long providerId,
+                                                                       @PathVariable Long tenantId,
+                                                                       @PathVariable Long participantId) {
+        return ResponseEntity.ok(tenantService.listTransferProcesses(participantId));
+    }
 
 }

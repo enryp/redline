@@ -435,4 +435,113 @@ class ManagementApiClientIntegrationTest {
         assertThat(dataplaneRequest.getPath()).isEqualTo("/v4alpha/dataplanes/" + participantContextId);
         assertThat(dataplaneRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
     }
+
+    @Test
+    void shouldListTransferProcesses() throws InterruptedException {
+        // Arrange
+        // Mock list transfer processes response
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("""
+                        [
+                            {
+                                "@type": "TransferProcess",
+                                "@id": "transfer-123",
+                                "protocol": "dataspace-protocol-http",
+                                "correlationId": "corr-123",
+                                "counterPartyAddress": "http://provider.com/dsp",
+                                "assetId": "asset-123",
+                                "contractId": "contract-123",
+                                "transferType": "HttpData-PULL",
+                                "dataPlaneId": "dataplane-1",
+                                "state": "STARTED"
+                            }
+                        ]
+                        """)
+                .addHeader("Content-Type", "application/json"));
+
+        // Act
+        var result = managementApiClient.listTransferProcesses(participantContextId);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getCorrelationId()).isEqualTo("corr-123");
+        assertThat(result.getFirst().getCounterPartyAddress()).isEqualTo("http://provider.com/dsp");
+        assertThat(result.getFirst().getAssetId()).isEqualTo("asset-123");
+        assertThat(result.getFirst().getContractId()).isEqualTo("contract-123");
+        assertThat(result.getFirst().getProtocol()).isEqualTo("dataspace-protocol-http");
+        assertThat(result.getFirst().getTransferType()).isEqualTo("HttpData-PULL");
+        assertThat(result.getFirst().getDataPlaneId()).isEqualTo("dataplane-1");
+
+        RecordedRequest listRequest = mockWebServer.takeRequest();
+        assertThat(listRequest.getPath()).contains("/transferprocesses/request");
+        assertThat(listRequest.getMethod()).isEqualTo("POST");
+        assertThat(listRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
+    }
+
+    @Test
+    void shouldListTransferProcesses_whenEmpty() throws InterruptedException {
+        // Arrange
+        // Mock empty list response
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("[]")
+                .addHeader("Content-Type", "application/json"));
+
+        // Act
+        var result = managementApiClient.listTransferProcesses(participantContextId);
+
+        // Assert
+        assertThat(result).isEmpty();
+
+        RecordedRequest listRequest = mockWebServer.takeRequest();
+        assertThat(listRequest.getPath()).contains("/transferprocesses/request");
+        assertThat(listRequest.getMethod()).isEqualTo("POST");
+    }
+
+    @Test
+    void shouldListTransferProcesses_withMultipleProcesses() throws InterruptedException {
+        // Arrange
+        // Mock multiple transfer processes response
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("""
+                        [
+                            {
+                                "@type": "TransferProcess",
+                                "@id": "transfer-123",
+                                "protocol": "dataspace-protocol-http",
+                                "assetId": "asset-123",
+                                "contractId": "contract-123",
+                                "state": "STARTED"
+                            },
+                            {
+                                "@type": "TransferProcess",
+                                "@id": "transfer-456",
+                                "protocol": "dataspace-protocol-http",
+                                "assetId": "asset-456",
+                                "contractId": "contract-456",
+                                "state": "COMPLETED"
+                            },
+                            {
+                                "@type": "TransferProcess",
+                                "@id": "transfer-789",
+                                "protocol": "dataspace-protocol-http",
+                                "assetId": "asset-789",
+                                "contractId": "contract-789",
+                                "state": "TERMINATED"
+                            }
+                        ]
+                        """)
+                .addHeader("Content-Type", "application/json"));
+
+        // Act
+        var result = managementApiClient.listTransferProcesses(participantContextId);
+
+        // Assert
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).getAssetId()).isEqualTo("asset-123");
+        assertThat(result.get(1).getAssetId()).isEqualTo("asset-456");
+        assertThat(result.get(2).getAssetId()).isEqualTo("asset-789");
+
+        RecordedRequest listRequest = mockWebServer.takeRequest();
+        assertThat(listRequest.getPath()).contains("/transferprocesses/request");
+    }
 }

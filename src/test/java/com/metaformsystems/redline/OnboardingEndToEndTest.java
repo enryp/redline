@@ -142,6 +142,11 @@ public class OnboardingEndToEndTest {
         // start transfer using the all-in-one API from JAD
         var result = managementApiClient.getData(consumerInfo.contextId(), providerInfo.webDid(), policyId);
         assertThat(result).isNotNull().isInstanceOf(List.class);
+
+        // check transfer process
+        var transferProcesses = managementApiClient.listTransferProcesses(consumerInfo.contextId());
+        assertThat(transferProcesses).isNotEmpty();
+        assertThat(transferProcesses.getFirst().getContractId()).isNotNull();
     }
 
     @Test
