@@ -491,7 +491,7 @@ class TenantServiceIntegrationTest {
     }
 
     @Test
-    void shouldListContracts() {
+    void shouldListContracts() throws InterruptedException {
         var participant = createAndSaveParticipant("ctx-4", "did:web:me");
 
         var contractsResponse = """
@@ -539,6 +539,15 @@ class TenantServiceIntegrationTest {
         assertThat(result).anyMatch(cn -> cn.getId().equals("negotiation-2") && cn.getState().equals("REQUESTED"));
         assertThat(result.stream().filter(cn -> cn.getId().equals("negotiation-1")).findFirst().orElseThrow().getContractAgreement()).isNotNull();
         assertThat(result.stream().filter(cn -> cn.getId().equals("negotiation-2")).findFirst().orElseThrow().getContractAgreement()).isNull();
+
+        var contractsRequest = mockWebServer.takeRequest();
+        assertThat(contractsRequest.getPath()).isEqualTo("/cp/v4alpha/participants/ctx-4/contractnegotiations/request");
+        assertThat(contractsRequest.getMethod()).isEqualTo("POST");
+
+        var agreementRequest = mockWebServer.takeRequest();
+        assertThat(agreementRequest.getPath()).isEqualTo("/cp/v4alpha/participants/ctx-4/contractnegotiations/negotiation-1/agreement");
+        assertThat(agreementRequest.getMethod()).isEqualTo("GET");
+
     }
 
     private Participant createAndSaveParticipant(String contextId, String identifier) {

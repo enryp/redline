@@ -285,7 +285,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
 
     @Override
     public ContractAgreement getAgreement(String participantContextId, String negotiationId) {
-        return controlPlaneWebClient.post()
+        return controlPlaneWebClient.get()
                 .uri("/v4alpha/participants/{participantContextId}/contractnegotiations/{negotiationId}/agreement", participantContextId, negotiationId)
                 .header("Authorization", "Bearer " + getToken(participantContextId))
                 .retrieve()
