@@ -1,0 +1,40 @@
+meta {
+  name: Health check
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/public/health
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Application is healthy
+  
+  request: {
+    url: {{baseUrl}}/api/public/health
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {}
+      '''
+    }
+  }
+}

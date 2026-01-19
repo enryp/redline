@@ -1,0 +1,102 @@
+meta {
+  name: Create a new service provider
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/ui/service-providers
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "test service provider"
+  }
+}
+
+script:post-response {
+  let body = res.getBody()
+  
+  test("Should have an ID", function () {
+    expect(body).to.have.property("id");
+  });
+  
+  bru.setVar("providerId", body.id)
+  
+}
+
+example {
+  name: 200 Response
+  description: Service provider successfully created
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "name": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "name": ""
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Invalid service provider data
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "name": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "name": ""
+        }
+      '''
+    }
+  }
+}

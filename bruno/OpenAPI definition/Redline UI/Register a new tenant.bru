@@ -1,0 +1,268 @@
+meta {
+  name: Register a new tenant
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "tenantName": "test tenant name",
+    "dataspaceInfos": [
+      {
+        "dataspaceId": 0,
+        "agreementTypes": [],
+        "roles": []
+      }
+    ]
+  }
+}
+
+script:post-response {
+  let body = res.getBody()
+  
+  
+  
+  test("Should have an ID", function () {
+    expect(body).to.have.property("id");
+  });
+  
+  let participant
+  test("Should have a valid participant entry", function(){
+    expect(body).to.have.property("participants")
+    expect(body.participants.length).to.equal(1)
+    participant = body.participants[0]
+    expect(participant).to.have.property("id")
+  
+  })
+  
+  bru.setVar("tenant_id", body.id)
+  bru.setVar("participant_id", participant.id)
+}
+
+example {
+  name: 200 Response
+  description: Tenant successfully registered
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants
+    method: POST
+    mode: json
+    params:query: {
+      registration: 
+    }
+  
+    params:path: {
+      serviceProviderId: 
+    }
+  
+    body:json: {
+      {
+        "tenantName": "",
+        "dataspaceInfos": [
+          {
+            "dataspaceId": 0,
+            "agreementTypes": [],
+            "roles": []
+          }
+        ]
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "providerId": 0,
+          "name": "",
+          "participants": [
+            {
+              "id": 0,
+              "identifier": "",
+              "agents": [
+                {
+                  "id": 0,
+                  "type": "",
+                  "state": ""
+                }
+              ],
+              "dataspaceInfos": [
+                {
+                  "dataspaceId": 0,
+                  "agreementTypes": [],
+                  "roles": [],
+                  "id": 0
+                }
+              ]
+            }
+          ]
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Invalid tenant registration data
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants
+    method: POST
+    mode: json
+    params:query: {
+      registration: 
+    }
+  
+    params:path: {
+      serviceProviderId: 
+    }
+  
+    body:json: {
+      {
+        "tenantName": "",
+        "dataspaceInfos": [
+          {
+            "dataspaceId": 0,
+            "agreementTypes": [],
+            "roles": []
+          }
+        ]
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "providerId": 0,
+          "name": "",
+          "participants": [
+            {
+              "id": 0,
+              "identifier": "",
+              "agents": [
+                {
+                  "id": 0,
+                  "type": "",
+                  "state": ""
+                }
+              ],
+              "dataspaceInfos": [
+                {
+                  "dataspaceId": 0,
+                  "agreementTypes": [],
+                  "roles": [],
+                  "id": 0
+                }
+              ]
+            }
+          ]
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 404 Response
+  description: Service provider not found
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants
+    method: POST
+    mode: json
+    params:query: {
+      registration: 
+    }
+  
+    params:path: {
+      serviceProviderId: 
+    }
+  
+    body:json: {
+      {
+        "tenantName": "",
+        "dataspaceInfos": [
+          {
+            "dataspaceId": 0,
+            "agreementTypes": [],
+            "roles": []
+          }
+        ]
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 404
+      text: Not Found
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "providerId": 0,
+          "name": "",
+          "participants": [
+            {
+              "id": 0,
+              "identifier": "",
+              "agents": [
+                {
+                  "id": 0,
+                  "type": "",
+                  "state": ""
+                }
+              ],
+              "dataspaceInfos": [
+                {
+                  "dataspaceId": 0,
+                  "agreementTypes": [],
+                  "roles": [],
+                  "id": 0
+                }
+              ]
+            }
+          ]
+        }
+      '''
+    }
+  }
+}

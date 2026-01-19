@@ -1,0 +1,93 @@
+meta {
+  name: List files
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants/{{tenant_id}}/participants/{{participant_id}}/files
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Successfully retrieved file list
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:providerId/tenants/:tenantId/participants/:participantId/files
+    method: GET
+    mode: none
+    params:path: {
+      participantId: 
+      tenantId: 
+      providerId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          {
+            "fileId": "",
+            "fileName": "",
+            "contentType": "",
+            "uploadDateIso": ""
+          }
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 404 Response
+  description: Service provider, tenant, or participant not found
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:providerId/tenants/:tenantId/participants/:participantId/files
+    method: GET
+    mode: none
+    params:path: {
+      participantId: 
+      tenantId: 
+      providerId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 404
+      text: Not Found
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          {
+            "fileId": "",
+            "fileName": "",
+            "contentType": "",
+            "uploadDateIso": ""
+          }
+        ]
+      '''
+    }
+  }
+}

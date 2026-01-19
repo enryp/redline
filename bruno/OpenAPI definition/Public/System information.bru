@@ -1,0 +1,40 @@
+meta {
+  name: System information
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/public/info
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Successfully retrieved system information
+  
+  request: {
+    url: {{baseUrl}}/api/public/info
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {}
+      '''
+    }
+  }
+}

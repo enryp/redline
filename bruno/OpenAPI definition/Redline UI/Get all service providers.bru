@@ -1,0 +1,45 @@
+meta {
+  name: Get all service providers
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/ui/service-providers
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: Successfully retrieved service providers
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          {
+            "id": 0,
+            "name": ""
+          }
+        ]
+      '''
+    }
+  }
+}

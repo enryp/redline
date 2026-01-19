@@ -1,0 +1,195 @@
+meta {
+  name: Deploy a participant
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants/{{tenant_id}}/participants/{{participant_id}}/deployments
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "participantId": {{participant_id}},
+    "identifier": "did:web:identityhub.edc-v.svc.cluster.local%3A7083:test-participant-{{participant_id}}"
+  }
+}
+
+example {
+  name: 200 Response
+  description: Participant successfully deployed
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants/:tenantId/participants/:participantId/deployments
+    method: POST
+    mode: json
+    params:path: {
+      serviceProviderId: 
+      tenantId: 
+      participantId: 
+    }
+  
+    body:json: {
+      {
+        "participantId": 0,
+        "identifier": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "identifier": "",
+          "agents": [
+            {
+              "id": 0,
+              "type": "",
+              "state": ""
+            }
+          ],
+          "dataspaceInfos": [
+            {
+              "dataspaceId": 0,
+              "agreementTypes": [],
+              "roles": [],
+              "id": 0
+            }
+          ]
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 400 Response
+  description: Invalid deployment data
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants/:tenantId/participants/:participantId/deployments
+    method: POST
+    mode: json
+    params:path: {
+      serviceProviderId: 
+      tenantId: 
+      participantId: 
+    }
+  
+    body:json: {
+      {
+        "participantId": 0,
+        "identifier": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 400
+      text: Bad Request
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "identifier": "",
+          "agents": [
+            {
+              "id": 0,
+              "type": "",
+              "state": ""
+            }
+          ],
+          "dataspaceInfos": [
+            {
+              "dataspaceId": 0,
+              "agreementTypes": [],
+              "roles": [],
+              "id": 0
+            }
+          ]
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 404 Response
+  description: Service provider, tenant, or participant not found
+  
+  request: {
+    url: {{baseUrl}}/api/ui/service-providers/:serviceProviderId/tenants/:tenantId/participants/:participantId/deployments
+    method: POST
+    mode: json
+    params:path: {
+      serviceProviderId: 
+      tenantId: 
+      participantId: 
+    }
+  
+    body:json: {
+      {
+        "participantId": 0,
+        "identifier": ""
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: */*
+    }
+  
+    status: {
+      code: 404
+      text: Not Found
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": 0,
+          "identifier": "",
+          "agents": [
+            {
+              "id": 0,
+              "type": "",
+              "state": ""
+            }
+          ],
+          "dataspaceInfos": [
+            {
+              "dataspaceId": 0,
+              "agreementTypes": [],
+              "roles": [],
+              "id": 0
+            }
+          ]
+        }
+      '''
+    }
+  }
+}
