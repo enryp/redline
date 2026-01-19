@@ -15,6 +15,7 @@
 package com.metaformsystems.redline.client.management;
 
 import com.metaformsystems.redline.client.management.dto.Catalog;
+import com.metaformsystems.redline.client.management.dto.ContractAgreement;
 import com.metaformsystems.redline.client.management.dto.ContractNegotiation;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
@@ -72,4 +73,6 @@ public interface ManagementApiClient {
     List<TransferProcess> listTransferProcesses(String participantContextId);
 
     List<ContractNegotiation> listContracts(String participantContextId);
+
+    ContractAgreement getAgreement(String participantContextId, String negotiationId);
 }

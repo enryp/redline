@@ -490,6 +490,57 @@ class TenantServiceIntegrationTest {
         assertThat(mockWebServer.getRequestCount()).isEqualTo(2);
     }
 
+    @Test
+    void shouldListContracts() {
+        var participant = createAndSaveParticipant("ctx-4", "did:web:me");
+
+        var contractsResponse = """
+                [
+                    {
+                        "@id": "negotiation-1",
+                        "@type": "ContractNegotiation",
+                        "type": "CONSUMER",
+                        "state": "FINALIZED",
+                        "counterPartyId": "did:web:provider",
+                        "counterPartyAddress": "http://provider.example.com/api/dsp",
+                        "contractAgreementId": "agreement-1"
+                    },
+                    {
+                        "@id": "negotiation-2",
+                        "@type": "ContractNegotiation",
+                        "type": "PROVIDER",
+                        "state": "REQUESTED",
+                        "counterPartyId": "did:web:consumer",
+                        "counterPartyAddress": "http://consumer.example.com/api/dsp"
+                    }
+                ]
+                """;
+
+        var agreementResponse = """
+                {
+                    "@id": "agreement-1",
+                    "@type": "ContractAgreement",
+                    "providerId": "did:web:provider",
+                    "consumerId": "did:web:consumer",
+                    "assetId": "asset-1",
+                    "policy": {
+                        "@type": "Policy"
+                    }
+                }
+                """;
+
+        mockWebServer.enqueue(new MockResponse().setBody(contractsResponse).addHeader("Content-Type", "application/json"));
+        mockWebServer.enqueue(new MockResponse().setBody(agreementResponse).addHeader("Content-Type", "application/json"));
+
+        var result = tenantService.listContracts(participant.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result).anyMatch(cn -> cn.getId().equals("negotiation-1") && cn.getState().equals("FINALIZED"));
+        assertThat(result).anyMatch(cn -> cn.getId().equals("negotiation-2") && cn.getState().equals("REQUESTED"));
+        assertThat(result.stream().filter(cn -> cn.getId().equals("negotiation-1")).findFirst().orElseThrow().getContractAgreement()).isNotNull();
+        assertThat(result.stream().filter(cn -> cn.getId().equals("negotiation-2")).findFirst().orElseThrow().getContractAgreement()).isNull();
+    }
+
     private Participant createAndSaveParticipant(String contextId, String identifier) {
         var p = new Participant();
         p.setParticipantContextId(contextId);

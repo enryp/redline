@@ -14,18 +14,42 @@
 
 package com.metaformsystems.redline.client.management.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class ContractNegotiation {
+    @JsonProperty("@id")
+    private String id;
+    private String state;
     private String correlationId;
     private String counterPartyId;
     private String counterPartyAddress;
     private String protocol;
     private String participantContextId;
-    private String type = "CONSUMER";
-    private ContractAgreement contractAgreement;
+    private String type;
+    private String contractAgreementId;
     private List<ContractOffer> contractOffers = new ArrayList<>();
+    @JsonIgnore
+    private ContractAgreement contractAgreement;
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getContractAgreementId() {
+        return contractAgreementId;
+    }
+
+    public void setContractAgreementId(String contractAgreementId) {
+        this.contractAgreementId = contractAgreementId;
+    }
 
     public String getCorrelationId() {
         return correlationId;
@@ -75,6 +99,14 @@ public class ContractNegotiation {
         this.type = type;
     }
 
+    public List<ContractOffer> getContractOffers() {
+        return contractOffers;
+    }
+
+    public void setContractOffers(List<ContractOffer> contractOffers) {
+        this.contractOffers = contractOffers;
+    }
+
     public ContractAgreement getContractAgreement() {
         return contractAgreement;
     }
@@ -83,11 +115,11 @@ public class ContractNegotiation {
         this.contractAgreement = contractAgreement;
     }
 
-    public List<ContractOffer> getContractOffers() {
-        return contractOffers;
+    public String getState() {
+        return state;
     }
 
-    public void setContractOffers(List<ContractOffer> contractOffers) {
-        this.contractOffers = contractOffers;
+    public void setState(String state) {
+        this.state = state;
     }
 }

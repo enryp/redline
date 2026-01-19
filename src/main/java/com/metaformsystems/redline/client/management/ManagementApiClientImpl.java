@@ -14,8 +14,10 @@
 
 package com.metaformsystems.redline.client.management;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metaformsystems.redline.client.TokenProvider;
 import com.metaformsystems.redline.client.management.dto.Catalog;
+import com.metaformsystems.redline.client.management.dto.ContractAgreement;
 import com.metaformsystems.redline.client.management.dto.ContractNegotiation;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
@@ -26,6 +28,8 @@ import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.dao.DataplaneRegistration;
 import com.metaformsystems.redline.model.ClientCredentials;
 import com.metaformsystems.redline.repository.ParticipantRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
@@ -40,6 +44,8 @@ import static com.nimbusds.jose.util.Base64URL.encode;
 @Component
 public class ManagementApiClientImpl implements ManagementApiClient {
 
+    private static final Logger logger = LoggerFactory.getLogger(ManagementApiClientImpl.class);
+
     private final WebClient controlPlaneWebClient;
     private final TokenProvider tokenProvider;
     private final ParticipantRepository participantRepository;
@@ -48,6 +54,7 @@ public class ManagementApiClientImpl implements ManagementApiClient {
     public ManagementApiClientImpl(WebClient controlPlaneWebClient,
                                    TokenProvider tokenProvider,
                                    ParticipantRepository participantRepository,
+                                   ObjectMapper objectMapper,
                                    @Value("${controlplane.admin.client-id:admin}") String adminClientId,
                                    @Value("${controlplane.admin.client-secret:edc-v-admin-secret}") String adminClientSecret) {
         this.controlPlaneWebClient = controlPlaneWebClient;
@@ -273,6 +280,16 @@ public class ManagementApiClientImpl implements ManagementApiClient {
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<List<ContractNegotiation>>() {
                 })
+                .block();
+    }
+
+    @Override
+    public ContractAgreement getAgreement(String participantContextId, String negotiationId) {
+        return controlPlaneWebClient.post()
+                .uri("/v4alpha/participants/{participantContextId}/contractnegotiations/{negotiationId}/agreement", participantContextId, negotiationId)
+                .header("Authorization", "Bearer " + getToken(participantContextId))
+                .retrieve()
+                .bodyToMono(ContractAgreement.class)
                 .block();
     }
 

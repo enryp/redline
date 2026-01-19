@@ -275,7 +275,6 @@ public class RedlineController {
     @Parameter(name = "providerId", description = "Database ID of the service provider", required = true)
     @Parameter(name = "tenantId", description = "Database ID of the tenant", required = true)
     @Parameter(name = "participantId", description = "Database ID of the participant", required = true)
-
     //    @PreAuthorize("hasRole('USER')")
     public ResponseEntity<List<Contract>> listContracts(@PathVariable Long providerId,
                                                         @PathVariable Long tenantId,

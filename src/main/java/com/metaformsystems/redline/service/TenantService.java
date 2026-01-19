@@ -314,11 +314,23 @@ public class TenantService {
 
     }
 
+    @Transactional
     public List<ContractNegotiation> listContracts(Long participantId) {
         var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
         var participantContextId = participant.getParticipantContextId();
 
-        return managementApiClient.listContracts(participantContextId);
+        var negotiations = managementApiClient.listContracts(participantContextId);
+
+        return negotiations.stream().map(cn -> getAgreement(participantContextId, cn))
+                .toList();
+    }
+
+    private ContractNegotiation getAgreement(String participantContextId, ContractNegotiation negotiation) {
+        if (negotiation.getContractAgreementId() != null) {
+            var agreement = managementApiClient.getAgreement(participantContextId, negotiation.getId());
+            negotiation.setContractAgreement(agreement);
+        }
+        return negotiation;
     }
 
     /**
