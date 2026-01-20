@@ -151,6 +151,7 @@ public class OnboardingEndToEndTest {
         //check contracts
         var contracts = tenantService.listContracts(consumerInfo.id());
         assertThat(contracts).isNotEmpty();
+        assertThat(contracts).allSatisfy(c -> assertThat(c.getContractAgreement()).isNotNull());
     }
 
     @Test

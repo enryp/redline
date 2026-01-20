@@ -9,37 +9,3 @@ get {
   body: none
   auth: inherit
 }
-
-example {
-  name: 200 Response
-  description: Successfully retrieved dataspaces
-  
-  request: {
-    url: {{baseUrl}}/api/ui/dataspaces
-    method: GET
-    mode: none
-  }
-  
-  response: {
-    headers: {
-      Content-Type: */*
-    }
-  
-    status: {
-      code: 200
-      text: OK
-    }
-  
-    body: {
-      type: text
-      content: '''
-        [
-          {
-            "id": 0,
-            "name": ""
-          }
-        ]
-      '''
-    }
-  }
-}

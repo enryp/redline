@@ -143,7 +143,7 @@ public class TenantService {
         }
 
         // invoke CFM to deploy the ParticipantProfile and update the internal Participant entity with correlation id, identifier, and VPAs
-        var tmProfile = tenantManagerClient.createParticipantProfile(tenant.getCorrelationId(), new V1Alpha1ParticipantProfile(
+        var tmProfile = tenantManagerClient.deployParticipantProfile(tenant.getCorrelationId(), new V1Alpha1ParticipantProfile(
                 UUID.randomUUID().toString(), 0L, deployment.identifier(), tenant.getCorrelationId(), false, null, Map.of(), Map.of(), Collections.emptyList()
         ));
         participant.setCorrelationId(tmProfile.id());

@@ -15,9 +15,12 @@
 package com.metaformsystems.redline.client.management.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public class ContractAgreement {
+    @JsonProperty("@id")
     private String id;
     private String providerId;
     private String consumerId;

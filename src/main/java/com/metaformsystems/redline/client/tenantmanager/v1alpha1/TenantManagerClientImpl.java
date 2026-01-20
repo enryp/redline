@@ -103,7 +103,7 @@ public class TenantManagerClientImpl implements TenantManagerClient {
     }
 
     @Override
-    public V1Alpha1ParticipantProfile createParticipantProfile(String tenantId, V1Alpha1ParticipantProfile profile) {
+    public V1Alpha1ParticipantProfile deployParticipantProfile(String tenantId, V1Alpha1ParticipantProfile profile) {
         return webClient.post()
                 .uri(API_BASE + "/tenants/{id}/participant-profiles", tenantId)
                 .bodyValue(profile)
