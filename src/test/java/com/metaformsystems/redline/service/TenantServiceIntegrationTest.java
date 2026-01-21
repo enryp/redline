@@ -11,6 +11,7 @@ import com.metaformsystems.redline.model.Participant;
 import com.metaformsystems.redline.model.PartnerReference;
 import com.metaformsystems.redline.model.ServiceProvider;
 import com.metaformsystems.redline.model.Tenant;
+import com.metaformsystems.redline.model.UploadedFile;
 import com.metaformsystems.redline.repository.DataspaceRepository;
 import com.metaformsystems.redline.repository.ParticipantRepository;
 import com.metaformsystems.redline.repository.ServiceProviderRepository;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.metaformsystems.redline.TestData.PARTICIPANT_PROFILE_RESPONSE;
@@ -561,6 +563,31 @@ class TenantServiceIntegrationTest {
         assertThat(agreementRequest.getPath()).isEqualTo("/cp/v4alpha/participants/ctx-4/contractnegotiations/negotiation-1/agreement");
         assertThat(agreementRequest.getMethod()).isEqualTo("GET");
 
+    }
+
+
+    @Test
+    void shouldListFiles() throws InterruptedException {
+        var participant = createAndSaveParticipant("ctx-5", "did:web:me");
+
+        participant.setUploadedFiles(new ArrayList<>(List.of(
+                new UploadedFile("file-id-1", "foobar.jpg", "image/jpeg", Map.of("bar", "baz")),
+                new UploadedFile("file-id-2", "barbaz.pdf", "application/pdf", Map.of("quizz", "qazz"))
+        )));
+
+        participant = participantRepository.save(participant);
+
+        var result = tenantService.listFilesForParticipant(participant.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result).anyMatch(f -> f.fileId().equals("file-id-1") &&
+                f.fileName().equals("foobar.jpg") &&
+                f.contentType().equals("image/jpeg") &&
+                f.metadata().get("bar").equals("baz"));
+        assertThat(result).anyMatch(f -> f.fileId().equals("file-id-2") &&
+                f.fileName().equals("barbaz.pdf") &&
+                f.contentType().equals("application/pdf") &&
+                f.metadata().get("quizz").equals("qazz"));
     }
 
     private Participant createAndSaveParticipant(String contextId, String identifier) {

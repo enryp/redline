@@ -14,5 +14,8 @@
 
 package com.metaformsystems.redline.dao;
 
-public record FileResource(String fileId, String fileName, String contentType, String uploadDateIso) {
+import java.util.Map;
+
+public record FileResource(String fileId, String fileName, String contentType, String uploadDateIso,
+                           Map<String, Object> metadata) {
 }

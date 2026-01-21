@@ -281,14 +281,14 @@ public class TenantService {
         var fileId = response.id();
 
         //2. track uploaded file in DB
-        participant.getUploadedFiles().add(new UploadedFile(fileId, originalFilename, contentType));
+        participant.getUploadedFiles().add(new UploadedFile(fileId, originalFilename, contentType, metadata));
     }
 
     @Transactional
     public List<FileResource> listFilesForParticipant(Long participantId) {
         var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
         return participant.getUploadedFiles().stream()
-                .map(f -> new FileResource(f.getFileId(), f.getOriginalFilename(), f.getContentType(), f.getCreatedAt().toString()))
+                .map(f -> new FileResource(f.getFileId(), f.getOriginalFilename(), f.getContentType(), f.getCreatedAt().toString(), f.getMetadata()))
                 .toList();
     }
 

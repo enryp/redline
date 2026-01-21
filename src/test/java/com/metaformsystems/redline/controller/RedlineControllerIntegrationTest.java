@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -512,8 +513,8 @@ class RedlineControllerIntegrationTest {
         participant.setTenant(tenant);
         participant.setParticipantContextId("test-participant-context-id");
         participant.setClientCredentials(new ClientCredentials("test-client", "test-secret"));
-        participant.getUploadedFiles().add(new UploadedFile("test-file-id", "test-file-name", "test-file-content-type"));
-        participant.getUploadedFiles().add(new UploadedFile("test-file-id2", "test-file-name2", "test-file-content-type2"));
+        participant.getUploadedFiles().add(new UploadedFile("test-file-id", "test-file-name", "test-file-content-type", Map.of()));
+        participant.getUploadedFiles().add(new UploadedFile("test-file-id2", "test-file-name2", "test-file-content-type2", Map.of()));
         tenant.addParticipant(participant);
         participant = participantRepository.save(participant);
 
