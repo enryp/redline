@@ -100,8 +100,8 @@ public class RedlineController {
     @Parameter(name = "serviceProviderId", description = "Database ID of the service provider", required = true)
     public ResponseEntity<List<TenantResource>> listTenants(
             @PathVariable Long serviceProviderId) {
-        var tenant = tenantService.getTenants(serviceProviderId);
-        return ResponseEntity.ok(tenant);
+        var tenants = tenantService.getTenants(serviceProviderId);
+        return ResponseEntity.ok(tenants);
     }
 
     @PostMapping("service-providers/{serviceProviderId}/tenants")
