@@ -94,6 +94,20 @@ public class RedlineController {
         return ResponseEntity.ok(saved);
     }
 
+    @GetMapping("service-providers/{serviceProviderId}/tenants")
+//    @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "List tenants", description = "List all tenants under a specific service provider.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Tenants Successfully retrieved",
+                    content = @Content(schema = @Schema(implementation = TenantResource.class))),
+    })
+    @Parameter(name = "serviceProviderId", description = "Database ID of the service provider", required = true)
+    public ResponseEntity<List<TenantResource>> listTenants(
+            @PathVariable Long serviceProviderId) {
+        var tenants = tenantService.getTenants(serviceProviderId);
+        return ResponseEntity.ok(tenants);
+    }
+
     @PostMapping("service-providers/{serviceProviderId}/tenants")
 //    @PreAuthorize("hasRole('USER')")
     @Operation(summary = "Register a new tenant", description = "Registers a new tenant under a specific service provider. A participant profile is also created.")

@@ -54,7 +54,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Profile("dev")
+    //@Profile("dev")
     CorsConfigurationSource corsConfigurationSource(@Value("${app.cors.allowed-origins}") String allowedOrigins) {
 
         var config = new CorsConfiguration();

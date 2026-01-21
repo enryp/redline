@@ -131,6 +131,19 @@ class TenantServiceIntegrationTest {
         assertThat(participant.getDataspaceInfos().iterator().next().getDataspaceId()).isEqualTo(dataspace.getId());
     }
 
+    @Test
+    void shouldGetTenantsByServiceProvider() {
+        var infos = List.of(new NewDataspaceInfo(dataspace.getId(), List.of(), List.of()));
+        var registration = new NewTenantRegistration("Test Tenant", infos);
+        tenantService.registerTenant(serviceProvider.getId(), registration);
+
+        var tenants = tenantService.getTenants(serviceProvider.getId());
+
+        assertThat(tenants).isNotNull();
+        assertThat(tenants).hasSize(1);
+        assertThat(tenants.get(0).name()).isEqualTo("Test Tenant");
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     void shouldDeployParticipant() {

@@ -96,6 +96,12 @@ public class TenantService {
         this.catalogCache = new ConcurrentLruCache<>(100, key -> fetchCatalog(key.participantId(), key.did()));
     }
 
+    @Transactional
+    public List<TenantResource> getTenants(Long serviceProviderId) {
+        return tenantRepository.findByServiceProviderId(serviceProviderId).stream()
+                .map(this::toTenantResource)
+                .collect(Collectors.toList());
+    }
 
     @Transactional
     public TenantResource getTenant(Long id) {
