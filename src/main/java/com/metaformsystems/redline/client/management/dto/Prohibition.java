@@ -18,9 +18,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-public class Permission {
+public class Prohibition {
     @JsonProperty("@type")
-    private final String type = "permission";
+    private final String type = "prohibition";
     @JsonProperty("action")
     private String action;
     @JsonProperty("constraint")
@@ -47,28 +47,28 @@ public class Permission {
     }
 
     public static final class Builder {
-        private final Permission permission;
+        private final Prohibition prohibition;
 
         private Builder() {
-            permission = new Permission();
+            prohibition = new Prohibition();
         }
 
-        public static Builder aPermission() {
+        public static Builder aProhibition() {
             return new Builder();
         }
 
         public Builder action(String action) {
-            permission.setAction(action);
+            prohibition.setAction(action);
             return this;
         }
 
         public Builder constraint(List<Constraint> constraint) {
-            permission.setConstraint(constraint);
+            prohibition.setConstraint(constraint);
             return this;
         }
 
-        public Permission build() {
-            return permission;
+        public Prohibition build() {
+            return prohibition;
         }
     }
 }

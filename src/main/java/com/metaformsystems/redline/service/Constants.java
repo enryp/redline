@@ -17,6 +17,7 @@ package com.metaformsystems.redline.service;
 import com.metaformsystems.redline.client.management.dto.Criterion;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
 import com.metaformsystems.redline.client.management.dto.NewPolicyDefinition;
+import com.metaformsystems.redline.client.management.dto.PolicySet;
 
 import java.util.List;
 import java.util.Set;
@@ -31,8 +32,8 @@ public interface Constants {
     // all files that are uploaded fall under this policy: the MembershipCredential must be presented to view the EDC asset
     NewPolicyDefinition MEMBERSHIP_POLICY = NewPolicyDefinition.Builder.aNewPolicyDefinition()
             .id(MEMBERSHIP_POLICY_ID)
-            .policy(new NewPolicyDefinition.PolicySet(List.of(new NewPolicyDefinition.PolicySet.Permission("use",
-                    List.of(new NewPolicyDefinition.PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
+            .policy(new PolicySet(List.of(new PolicySet.Permission("use",
+                    List.of(new PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
             .build();
 
     // all new assets must have privateProperties: "permission" - "membership_asset", so that they are affected by this contract def

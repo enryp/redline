@@ -26,6 +26,15 @@ public class Constraint {
     @JsonProperty("rightOperand")
     private String rightOperand;
 
+    public Constraint() {
+    }
+
+    public Constraint(String leftOperand, String operator, String rightOperand) {
+        this.leftOperand = leftOperand;
+        this.operator = operator;
+        this.rightOperand = rightOperand;
+    }
+
     public String getLeftOperand() {
         return leftOperand;
     }

@@ -18,6 +18,7 @@ import com.metaformsystems.redline.client.TokenProvider;
 import com.metaformsystems.redline.client.dataplane.dto.UploadResponse;
 import com.metaformsystems.redline.client.management.dto.QuerySpec;
 import com.metaformsystems.redline.repository.ParticipantRepository;
+import com.metaformsystems.redline.service.ObjectNotFoundException;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -118,7 +119,7 @@ public class DataPlaneApiClientImpl implements DataPlaneApiClient {
 
     private String getToken(String participantContextId) {
         var participantProfile = participantRepository.findByParticipantContextId(participantContextId)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with context id: " + participantContextId));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with context id: " + participantContextId));
 
         return tokenProvider.getToken(participantProfile.getClientCredentials().clientId(), participantProfile.getClientCredentials().clientSecret(), "management-api:write management-api:read");
     }

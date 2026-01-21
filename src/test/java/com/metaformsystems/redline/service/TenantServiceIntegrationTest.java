@@ -1,6 +1,10 @@
 package com.metaformsystems.redline.service;
 
 import com.metaformsystems.redline.client.TokenProvider;
+import com.metaformsystems.redline.client.management.dto.Constraint;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
+import com.metaformsystems.redline.client.management.dto.Obligation;
+import com.metaformsystems.redline.client.management.dto.Offer;
 import com.metaformsystems.redline.dao.NewDataspaceInfo;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
 import com.metaformsystems.redline.dao.NewTenantRegistration;
@@ -42,6 +46,7 @@ import static com.metaformsystems.redline.TestData.VAULT_CREDENTIAL_RESPONSE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest
@@ -73,6 +78,9 @@ class TenantServiceIntegrationTest {
     private Dataspace dataspace;
     @MockitoBean
     private TokenProvider tokenProvider;
+
+    @MockitoBean
+    private WebDidResolver webDidResolver;
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) throws IOException {
@@ -552,9 +560,8 @@ class TenantServiceIntegrationTest {
 
     }
 
-
     @Test
-    void shouldListFiles() throws InterruptedException {
+    void shouldListFiles() {
         var participant = createAndSaveParticipant("ctx-5", "did:web:me");
 
         participant.setUploadedFiles(new ArrayList<>(List.of(
@@ -576,6 +583,44 @@ class TenantServiceIntegrationTest {
                 f.contentType().equals("application/pdf") &&
                 f.metadata().get("quizz").equals("qazz"));
     }
+
+    @Test
+    void shouldInitiateContractNegotiation() throws InterruptedException {
+        var participant = createAndSaveParticipant("ctx-6", "did:web:me");
+        var providerId = "did:web:provider";
+        var assetId = "asset-123";
+        var offerId = "offer-456";
+
+        when(webDidResolver.resolveProtocolEndpoints(eq(providerId)))
+                .thenReturn("http://provider.example.com/api/dsp");
+
+        var contractRequest = ContractRequest.Builder.aContractRequest()
+                .providerId(providerId)
+                .policy(Offer.Builder.anOffer()
+                        .id(offerId)
+                        .target(assetId)
+                        .assigner(providerId)
+                        .obligation(List.of(Obligation.Builder.anObligation()
+                                .action("use")
+                                .constraint(List.of(new Constraint("foo", "=", "bar")))
+                                .build()))
+                        .build())
+                .build();
+
+        mockWebServer.enqueue(new MockResponse()
+                .setBody("{ \"@id\": \"negotiation-123\"}")
+                .addHeader("Content-Type", "application/json"));
+
+        var result = tenantService.initiateContractNegotiation(participant.getId(), contractRequest);
+
+        assertThat(result).isNotNull();
+        assertThat(result).isEqualTo("negotiation-123");
+
+        var request = mockWebServer.takeRequest();
+        assertThat(request.getPath()).isEqualTo("/cp/v4alpha/participants/ctx-6/contractnegotiations");
+        assertThat(request.getMethod()).isEqualTo("POST");
+    }
+
 
     private Participant createAndSaveParticipant(String contextId, String identifier) {
         var p = new Participant();

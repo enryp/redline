@@ -17,11 +17,14 @@ package com.metaformsystems.redline;
 import com.metaformsystems.redline.client.dataplane.DataPlaneApiClient;
 import com.metaformsystems.redline.client.identityhub.IdentityHubClient;
 import com.metaformsystems.redline.client.management.ManagementApiClient;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
 import com.metaformsystems.redline.client.management.dto.Criterion;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
 import com.metaformsystems.redline.client.management.dto.NewPolicyDefinition;
+import com.metaformsystems.redline.client.management.dto.Offer;
+import com.metaformsystems.redline.client.management.dto.PolicySet;
 import com.metaformsystems.redline.dao.DataplaneRegistration;
 import com.metaformsystems.redline.dao.NewDataspaceInfo;
 import com.metaformsystems.redline.dao.NewParticipantDeployment;
@@ -155,6 +158,54 @@ public class OnboardingEndToEndTest {
     }
 
     @Test
+    void shouldInitiateContractNegotiation() {
+        var providerInfo = onboardParticipant();
+        var consumerInfo = onboardParticipant();
+
+        // prepare consumer: create CEL expression
+        managementApiClient.createCelExpression(NewCelExpression.Builder.aNewCelExpression()
+                .id("membership_expr_" + consumerInfo.contextId())
+                .leftOperand("MembershipCredential")
+                .description("Expression for evaluating membership credential")
+                .scopes(Set.of("catalog", "contract.negotiation", "transfer.process"))
+                .expression("ctx.agent.claims.vc.filter(c, c.type.exists(t, t == 'MembershipCredential')).exists(c, c.credentialSubject.exists(cs, timestamp(cs.membershipStartDate) < now))")
+                .build());
+
+        //prepare provider - create asset, policy etc.
+        var todoAssetId = "todo_asset_" + providerInfo.contextId();
+        publishHttpAsset(providerInfo.contextId(), todoAssetId);
+        registerDataPlane(providerInfo.contextId());
+
+        // now acting as the consumer, getting the provider's catalog
+        var catalog = tenantService.requestCatalog(consumerInfo.id(), providerInfo.webDid(), "no-cache");
+
+        // get the asset with id "todo_asset"
+        var dataset = catalog.getDataset().stream().filter(ds -> ds.getId().equals(todoAssetId)).findFirst().orElseThrow();
+        var offers = dataset.getHasPolicy();
+
+        var first = offers.getFirst();
+        var policyId = first.getId();
+        assertThat(policyId).isNotNull();
+
+        // start transfer using the all-in-one API from JAD
+        var cr = ContractRequest.Builder.aContractRequest()
+                .providerId(providerInfo.webDid())
+                .counterPartyAddress("foobar")
+                .callbackAddresses(Set.of())
+                .policy(Offer.Builder.anOffer()
+                        .id(policyId)
+                        .assigner(providerInfo.webDid())
+                        .obligation(first.getObligation())
+                        .permission(first.getPermission())
+                        .prohibition(first.getProhibition())
+                        .target(todoAssetId)
+                        .build())
+                .build();
+        var id = managementApiClient.initiateContractNegotiation(consumerInfo.contextId(), cr);
+        assertThat(id).isNotNull();
+    }
+
+    @Test
     void shouldDownloadCert() throws IOException {
         var providerInfo = onboardParticipant();
         var consumerInfo = onboardParticipant();
@@ -204,7 +255,7 @@ public class OnboardingEndToEndTest {
         var membershipPolicy = "membership_policy_" + participantContextId;
         managementApiClient.createPolicy(participantContextId, NewPolicyDefinition.Builder.aNewPolicyDefinition()
                 .id(membershipPolicy)
-                .policy(new NewPolicyDefinition.PolicySet(List.of(new NewPolicyDefinition.PolicySet.Permission("use", List.of(new NewPolicyDefinition.PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
+                .policy(new PolicySet(List.of(new PolicySet.Permission("use", List.of(new PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
                 .build());
 
         // create contract definition
@@ -288,7 +339,7 @@ public class OnboardingEndToEndTest {
         var membershipPolicy = "membership_policy_" + participantContextId;
         managementApiClient.createPolicy(participantContextId, NewPolicyDefinition.Builder.aNewPolicyDefinition()
                 .id(membershipPolicy)
-                .policy(new NewPolicyDefinition.PolicySet(List.of(new NewPolicyDefinition.PolicySet.Permission("use", List.of(new NewPolicyDefinition.PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
+                .policy(new PolicySet(List.of(new PolicySet.Permission("use", List.of(new PolicySet.Constraint("MembershipCredential", "eq", "active"))))))
                 .build());
 
         // create contract definition

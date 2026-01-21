@@ -8,6 +8,7 @@ import com.metaformsystems.redline.client.identityhub.dto.KeyDescriptor;
 import com.metaformsystems.redline.client.identityhub.dto.KeyPairResource;
 import com.metaformsystems.redline.client.identityhub.dto.VerifiableCredentialResource;
 import com.metaformsystems.redline.repository.ParticipantRepository;
+import com.metaformsystems.redline.service.ObjectNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -212,7 +213,7 @@ public class IdentityHubClientImpl implements IdentityHubClient {
 
     private String getToken(String participantContextId) {
         var participantProfile = participantRepository.findByParticipantContextId(participantContextId)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with context id: " + participantContextId));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with context id: " + participantContextId));
 
         var token = tokenProvider.getToken(participantProfile.getClientCredentials().clientId(), participantProfile.getClientCredentials().clientSecret(), "identity-api:write identity-api:read");
         return token;

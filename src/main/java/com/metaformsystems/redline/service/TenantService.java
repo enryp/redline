@@ -5,6 +5,7 @@ import com.metaformsystems.redline.client.hashicorpvault.HashicorpVaultClient;
 import com.metaformsystems.redline.client.management.ManagementApiClient;
 import com.metaformsystems.redline.client.management.dto.Catalog;
 import com.metaformsystems.redline.client.management.dto.ContractNegotiation;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.TransferProcess;
@@ -74,12 +75,16 @@ public class TenantService {
     private final DataPlaneApiClient dataPlaneApiClient;
     private final ManagementApiClient managementApiClient;
     private final ConcurrentLruCache<LookupKey, CacheableEntry<Catalog>> catalogCache;
+    private final WebDidResolver webDidResolver;
 
     public TenantService(TenantRepository tenantRepository,
                          ParticipantRepository participantRepository,
                          ServiceProviderRepository serviceProviderRepository,
                          TenantManagerClient tenantManagerClient,
-                         HashicorpVaultClient vaultClient, DataPlaneApiClient dataPlaneApiClient, ManagementApiClient managementApiClient) {
+                         HashicorpVaultClient vaultClient,
+                         DataPlaneApiClient dataPlaneApiClient,
+                         ManagementApiClient managementApiClient,
+                         WebDidResolver webDidResolver) {
         this.tenantRepository = tenantRepository;
         this.participantRepository = participantRepository;
         this.serviceProviderRepository = serviceProviderRepository;
@@ -87,6 +92,7 @@ public class TenantService {
         this.vaultClient = vaultClient;
         this.dataPlaneApiClient = dataPlaneApiClient;
         this.managementApiClient = managementApiClient;
+        this.webDidResolver = webDidResolver;
         this.catalogCache = new ConcurrentLruCache<>(100, key -> fetchCatalog(key.participantId(), key.did()));
     }
 
@@ -95,7 +101,7 @@ public class TenantService {
     public TenantResource getTenant(Long id) {
         return tenantRepository.findById(id)
                 .map(this::toTenantResource)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + id));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + id));
     }
 
     @Transactional
@@ -133,7 +139,7 @@ public class TenantService {
     @Transactional
     public ParticipantResource deployParticipant(NewParticipantDeployment deployment) {
         var participant = participantRepository.findById(deployment.participantId())
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + deployment.participantId()));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + deployment.participantId()));
 
         var tenant = participant.getTenant();
         if (tenant.getCorrelationId() == null) {
@@ -161,7 +167,7 @@ public class TenantService {
     @Transactional
     public String getParticipantContextId(Long participantId) {
         var participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         var participantCorrelationId = participant.getCorrelationId();
         var cfmProfile = tenantManagerClient.getParticipantProfile(participant.getTenant().getCorrelationId(), participantCorrelationId);
 
@@ -184,7 +190,7 @@ public class TenantService {
         }
         //todo: store credentials somewhere safer!
         var participantProfile = participantRepository.findByParticipantContextId(participantContextId)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with participantContextId id: " + participantContextId));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with participantContextId id: " + participantContextId));
 
         var clientCredentials = new ClientCredentials(participantContextId, secret);
         participantProfile.setClientCredentials(clientCredentials);
@@ -196,7 +202,7 @@ public class TenantService {
     public ParticipantResource getParticipant(Long id) {
 
         var profile = participantRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + id));
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + id));
 
         // fixme: figure out a better way to synchronize redline with CFM (periodically, NATS, etc.)
         // update VPA state
@@ -230,7 +236,7 @@ public class TenantService {
     @Transactional
     public void uploadFileForParticipant(Long participantId, Map<String, Object> metadata, InputStream fileStream, String contentType, String originalFilename) {
 
-        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         //1. create asset
         var participantContextId = participant.getParticipantContextId();
         var asset = createAsset(metadata, contentType, originalFilename);
@@ -270,6 +276,7 @@ public class TenantService {
         // todo: do we need this?
         metadata.put("originalFilename", originalFilename);
         metadata.put("contentType", contentType);
+        metadata.put("assetId", asset.getId());
 
         var response = dataPlaneApiClient.uploadMultipart(participantContextId, metadata, fileStream);
         var fileId = response.id();
@@ -280,7 +287,7 @@ public class TenantService {
 
     @Transactional
     public List<FileResource> listFilesForParticipant(Long participantId) {
-        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         return participant.getUploadedFiles().stream()
                 .map(f -> new FileResource(f.getFileId(), f.getOriginalFilename(), f.getContentType(), f.getCreatedAt().toString(), f.getMetadata()))
                 .toList();
@@ -289,7 +296,7 @@ public class TenantService {
     @Transactional
     public Catalog requestCatalog(Long participantId, String counterPartyIdentifier, String cacheControl) {
 
-        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
 
         var key = new LookupKey(participant.getParticipantContextId(), counterPartyIdentifier);
         var catalogEntry = catalogCache.get(key);
@@ -307,22 +314,34 @@ public class TenantService {
 
     @Transactional
     public List<TransferProcess> listTransferProcesses(Long participantId) {
-        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         var participantContextId = participant.getParticipantContextId();
-
         return managementApiClient.listTransferProcesses(participantContextId);
-
     }
 
     @Transactional
     public List<ContractNegotiation> listContracts(Long participantId) {
-        var participant = participantRepository.findById(participantId).orElseThrow(() -> new IllegalArgumentException("Participant not found with id: " + participantId));
+        var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         var participantContextId = participant.getParticipantContextId();
 
         var negotiations = managementApiClient.listContracts(participantContextId);
 
         return negotiations.stream().map(cn -> getAgreement(participantContextId, cn))
                 .toList();
+    }
+
+    @Transactional
+    public String initiateContractNegotiation(Long providerId, ContractRequest request) {
+        var participant = participantRepository.findById(providerId)
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + providerId));
+
+        var did = request.getProviderId();
+        var addressFromDid = webDidResolver.resolveProtocolEndpoints(did);
+        if (addressFromDid == null) {
+            throw new IllegalArgumentException("Could not resolve protocol endpoint from DID: " + did);
+        }
+        request.setCounterPartyAddress(addressFromDid);
+        return managementApiClient.initiateContractNegotiation(participant.getParticipantContextId(), request);
     }
 
     private ContractNegotiation getAgreement(String participantContextId, ContractNegotiation negotiation) {

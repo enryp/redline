@@ -26,8 +26,10 @@ USER spring:spring
 # Copy the built jar from build stage
 COPY --from=build /app/build/libs/*.jar app.jar
 
+ENV JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
+
 # Expose application port
-EXPOSE 8081
+EXPOSE 8081 5005
 
 # Set default profile
 ENV SPRING_PROFILES_ACTIVE=prod

@@ -17,6 +17,7 @@ package com.metaformsystems.redline.client.management;
 import com.metaformsystems.redline.client.management.dto.Catalog;
 import com.metaformsystems.redline.client.management.dto.ContractAgreement;
 import com.metaformsystems.redline.client.management.dto.ContractNegotiation;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
@@ -51,7 +52,7 @@ public interface ManagementApiClient {
     void deleteContractDefinition(String participantContextId, String contractDefinitionId);
 
     // Contract Negotiations
-    void initiateContractNegotiation(String participantContextId, Map<String, Object> negotiationRequest);
+    String initiateContractNegotiation(String participantContextId, ContractRequest negotiationRequest);
 
     Map<String, Object> getContractNegotiation(String participantContextId, String negotiationId);
 

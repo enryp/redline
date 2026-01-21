@@ -2,6 +2,12 @@ package com.metaformsystems.redline.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metaformsystems.redline.client.management.dto.Catalog;
+import com.metaformsystems.redline.client.management.dto.Constraint;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
+import com.metaformsystems.redline.client.management.dto.Obligation;
+import com.metaformsystems.redline.client.management.dto.Offer;
+import com.metaformsystems.redline.client.management.dto.Permission;
+import com.metaformsystems.redline.client.management.dto.Prohibition;
 import com.metaformsystems.redline.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.dao.Contract;
 import com.metaformsystems.redline.dao.DataspaceResource;
@@ -13,25 +19,24 @@ import com.metaformsystems.redline.dao.ParticipantResource;
 import com.metaformsystems.redline.dao.PartnerReferenceResource;
 import com.metaformsystems.redline.dao.ServiceProviderResource;
 import com.metaformsystems.redline.dao.TenantResource;
+import com.metaformsystems.redline.model.ContractRequestDto;
 import com.metaformsystems.redline.service.ServiceProviderService;
 import com.metaformsystems.redline.service.TenantService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Encoding;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,7 +45,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Main API controller for the Redline UI
@@ -303,4 +307,42 @@ public class RedlineController {
         return ResponseEntity.ok(contracts);
     }
 
+
+    @PostMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/contracts")
+    public ResponseEntity<String> requestContract(@PathVariable Long providerId,
+                                                  @PathVariable Long tenantId,
+                                                  @PathVariable Long participantId,
+                                                  @RequestBody ContractRequestDto contractRequest) {
+
+        var offer = Offer.Builder.anOffer()
+                .target(contractRequest.getAssetId())
+                .id(contractRequest.getOfferId())
+                .assigner(contractRequest.getProviderId());
+
+        if (contractRequest.getProhibitions() != null) {
+            var prohibition = new Prohibition();
+            prohibition.setConstraint(contractRequest.getProhibitions().stream().map(dto -> new Constraint(dto.leftOperand(), dto.operator(), dto.rightOperand())).toList());
+            offer.prohibition(List.of(prohibition));
+        }
+
+        if (contractRequest.getPermissions() != null) {
+            var permission = new Permission();
+            permission.setConstraint(contractRequest.getPermissions().stream().map(dto -> new Constraint(dto.leftOperand(), dto.operator(), dto.rightOperand())).toList());
+            offer.permission(List.of(permission));
+        }
+
+        if (contractRequest.getObligations() != null) {
+            var obligation = new Obligation();
+            obligation.setConstraint(contractRequest.getObligations().stream().map(dto -> new Constraint(dto.leftOperand(), dto.operator(), dto.rightOperand())).toList());
+            offer.obligation(List.of(obligation));
+        }
+
+        var request = ContractRequest.Builder.aContractRequest()
+                .providerId(contractRequest.getProviderId())
+                .policy(offer.build())
+                //counterparty address is left empty - the tenant service must resolve this from the DID
+                .build();
+
+        return ResponseEntity.ok(tenantService.initiateContractNegotiation(participantId, request));
+    }
 }

@@ -1,0 +1,16 @@
+meta {
+  name: Initiate Contract Negotiation
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants/{{tenant_id}}/participants/{{participant_id}}/contracts
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

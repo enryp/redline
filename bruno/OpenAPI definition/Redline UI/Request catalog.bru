@@ -5,12 +5,13 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants/{{tenant_id}}/participants/{{participant_id}}/catalog
-  body: none
+  url: {{baseUrl}}/api/ui/service-providers/{{providerId}}/tenants/{{tenant_id}}/participants/{{participant_id}}/catalog?counterPartyIdentifier=did:web:foobar
+  body: json
   auth: inherit
 }
 
 params:query {
+  counterPartyIdentifier: did:web:foobar
   ~cacheControl: 
 }
 

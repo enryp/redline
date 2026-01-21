@@ -1,11 +1,13 @@
 package com.metaformsystems.redline.client.management;
 
 import com.metaformsystems.redline.client.TokenProvider;
+import com.metaformsystems.redline.client.management.dto.ContractRequest;
 import com.metaformsystems.redline.client.management.dto.Criterion;
 import com.metaformsystems.redline.client.management.dto.NewAsset;
 import com.metaformsystems.redline.client.management.dto.NewCelExpression;
 import com.metaformsystems.redline.client.management.dto.NewContractDefinition;
 import com.metaformsystems.redline.client.management.dto.NewPolicyDefinition;
+import com.metaformsystems.redline.client.management.dto.PolicySet;
 import com.metaformsystems.redline.client.management.dto.QuerySpec;
 import com.metaformsystems.redline.dao.DataplaneRegistration;
 import com.metaformsystems.redline.model.ClientCredentials;
@@ -13,8 +15,7 @@ import com.metaformsystems.redline.model.Participant;
 import com.metaformsystems.redline.repository.ParticipantRepository;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
-import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,10 +24,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.TestSocketUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,8 +41,9 @@ import static org.mockito.Mockito.when;
 @ActiveProfiles("dev")
 @Transactional
 class ManagementApiClientIntegrationTest {
-
-    private static MockWebServer mockWebServer;
+    static final String mockBackEndHost = "localhost";
+    static final int mockBackEndPort = TestSocketUtils.findAvailableTcpPort();
+    private MockWebServer mockWebServer;
 
     @Autowired
     private ManagementApiClient managementApiClient;
@@ -56,26 +59,28 @@ class ManagementApiClientIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) throws IOException {
-        mockWebServer = new MockWebServer();
-        mockWebServer.start();
-        registry.add("controlplane.url", () -> mockWebServer.url("/").toString());
+        registry.add("controlplane.url", () -> "http://%s:%s".formatted(mockBackEndHost, mockBackEndPort));
     }
 
-    @AfterAll
-    static void tearDown() throws IOException {
+    @AfterEach
+    void tearDown() throws IOException {
         if (mockWebServer != null) {
             mockWebServer.shutdown();
         }
     }
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         participantContextId = "test-participant-context-id";
 
         participant = new Participant();
         participant.setParticipantContextId(participantContextId);
         participant.setClientCredentials(new ClientCredentials("test-client-id", "test-client-secret"));
         participant = participantRepository.save(participant);
+
+        mockWebServer = new MockWebServer();
+        mockWebServer.start(InetAddress.getByName(mockBackEndHost), mockBackEndPort);
+        when(tokenProvider.getToken(anyString(), anyString(), anyString())).thenReturn("mock-token");
 
         // Mock token provider to return a test token
         when(tokenProvider.getToken(anyString(), anyString(), anyString())).thenReturn("test-token");
@@ -98,7 +103,7 @@ class ManagementApiClientIntegrationTest {
         managementApiClient.createAsset(participantContextId, asset);
 
         // Assert
-        RecordedRequest assetRequest = mockWebServer.takeRequest();
+        var assetRequest = mockWebServer.takeRequest();
         assertThat(assetRequest.getPath()).contains("/participants/" + participantContextId + "/assets");
         assertThat(assetRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
         assertThat(assetRequest.getBody().readUtf8()).contains("asset-123");
@@ -133,7 +138,7 @@ class ManagementApiClientIntegrationTest {
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).containsEntry("@id", "asset-123");
 
-        RecordedRequest queryRequest = mockWebServer.takeRequest();
+        var queryRequest = mockWebServer.takeRequest();
         assertThat(queryRequest.getPath()).contains("/assets/request");
         assertThat(queryRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
     }
@@ -141,7 +146,7 @@ class ManagementApiClientIntegrationTest {
     @Test
     void shouldDeleteAsset() throws InterruptedException {
         // Arrange
-        String assetId = "asset-123";
+        var assetId = "asset-123";
 
 
         // Mock delete response
@@ -153,7 +158,7 @@ class ManagementApiClientIntegrationTest {
 
         // Assert
 
-        RecordedRequest deleteRequest = mockWebServer.takeRequest();
+        var deleteRequest = mockWebServer.takeRequest();
         assertThat(deleteRequest.getPath()).contains("/assets/" + assetId);
         assertThat(deleteRequest.getMethod()).isEqualTo("DELETE");
         assertThat(deleteRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
@@ -164,7 +169,7 @@ class ManagementApiClientIntegrationTest {
         // Arrange
         var policy = NewPolicyDefinition.Builder.aNewPolicyDefinition()
                 .id("policy-123")
-                .policy(new NewPolicyDefinition.PolicySet(List.of(new NewPolicyDefinition.PolicySet.Permission("use", List.of(new NewPolicyDefinition.PolicySet.Constraint("foo", "=", "bar"))))))
+                .policy(new PolicySet(List.of(new PolicySet.Permission("use", List.of(new PolicySet.Constraint("foo", "=", "bar"))))))
                 .build();
 
         // Mock policy creation response
@@ -177,7 +182,7 @@ class ManagementApiClientIntegrationTest {
 
         // Assert
 
-        RecordedRequest policyRequest = mockWebServer.takeRequest();
+        var policyRequest = mockWebServer.takeRequest();
         assertThat(policyRequest.getPath()).contains("/participants/" + participantContextId + "/policydefinitions");
         assertThat(policyRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
         assertThat(policyRequest.getBody().readUtf8()).contains("policy-123");
@@ -208,14 +213,14 @@ class ManagementApiClientIntegrationTest {
         assertThat(result.getFirst()).containsEntry("@id", "policy-123");
 
 
-        RecordedRequest queryRequest = mockWebServer.takeRequest();
+        var queryRequest = mockWebServer.takeRequest();
         assertThat(queryRequest.getPath()).contains("/policydefinitions/request");
     }
 
     @Test
     void shouldDeletePolicyDefinition() throws InterruptedException {
         // Arrange
-        String policyId = "policy-123";
+        var policyId = "policy-123";
 
         // Mock delete response
         mockWebServer.enqueue(new MockResponse()
@@ -225,7 +230,7 @@ class ManagementApiClientIntegrationTest {
         managementApiClient.deletePolicyDefinition(participantContextId, policyId);
 
         // Assert
-        RecordedRequest deleteRequest = mockWebServer.takeRequest();
+        var deleteRequest = mockWebServer.takeRequest();
         assertThat(deleteRequest.getPath()).contains("/policydefinitions/" + policyId);
         assertThat(deleteRequest.getMethod()).isEqualTo("DELETE");
     }
@@ -249,7 +254,7 @@ class ManagementApiClientIntegrationTest {
         managementApiClient.createContractDefinition(participantContextId, contractDef);
 
         // Assert
-        RecordedRequest contractRequest = mockWebServer.takeRequest();
+        var contractRequest = mockWebServer.takeRequest();
         assertThat(contractRequest.getPath()).contains("/participants/" + participantContextId + "/contractdefinitions");
         assertThat(contractRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
         assertThat(contractRequest.getBody().readUtf8()).contains("contract-123");
@@ -280,14 +285,14 @@ class ManagementApiClientIntegrationTest {
         assertThat(result.getFirst()).containsEntry("@id", "contract-123");
 
 
-        RecordedRequest queryRequest = mockWebServer.takeRequest();
+        var queryRequest = mockWebServer.takeRequest();
         assertThat(queryRequest.getPath()).contains("/contractdefinitions/request");
     }
 
     @Test
     void shouldDeleteContractDefinition() throws InterruptedException {
         // Arrange
-        String contractId = "contract-123";
+        var contractId = "contract-123";
 
 
         // Mock delete response
@@ -299,7 +304,7 @@ class ManagementApiClientIntegrationTest {
 
         // Assert
 
-        RecordedRequest deleteRequest = mockWebServer.takeRequest();
+        var deleteRequest = mockWebServer.takeRequest();
         assertThat(deleteRequest.getPath()).contains("/contractdefinitions/" + contractId);
         assertThat(deleteRequest.getMethod()).isEqualTo("DELETE");
     }
@@ -307,14 +312,16 @@ class ManagementApiClientIntegrationTest {
     @Test
     void shouldInitiateContractNegotiation() throws InterruptedException {
         // Arrange
-        Map<String, Object> negotiationRequest = new HashMap<>();
-        negotiationRequest.put("@type", "ContractRequest");
-        negotiationRequest.put("counterPartyAddress", "http://provider.com/dsp");
-        negotiationRequest.put("protocol", "dataspace-protocol-http");
+        var negotiationRequest = ContractRequest.Builder.aContractRequest()
+                .counterPartyAddress("http://provider.com/dsp")
+                .protocol("dataspace-protocol-http")
+                .providerId("provider-123")
+                .build();
 
 
         // Mock negotiation initiation response
         mockWebServer.enqueue(new MockResponse()
+                .setBody("{ \"@id\", \"test-neg-id\"}")
                 .setResponseCode(204)
                 .addHeader("Content-Type", "application/json"));
 
@@ -323,7 +330,7 @@ class ManagementApiClientIntegrationTest {
 
         // Assert
 
-        RecordedRequest negotiationRequestRecorded = mockWebServer.takeRequest();
+        var negotiationRequestRecorded = mockWebServer.takeRequest();
         assertThat(negotiationRequestRecorded.getPath()).contains("/contractnegotiations");
         assertThat(negotiationRequestRecorded.getHeader("Authorization")).isEqualTo("Bearer test-token");
         assertThat(negotiationRequestRecorded.getBody().readUtf8()).contains("ContractRequest");
@@ -332,7 +339,7 @@ class ManagementApiClientIntegrationTest {
     @Test
     void shouldGetContractNegotiation() throws InterruptedException {
         // Arrange
-        String negotiationId = "negotiation-123";
+        var negotiationId = "negotiation-123";
 
         // Mock get negotiation response
         mockWebServer.enqueue(new MockResponse()
@@ -353,7 +360,7 @@ class ManagementApiClientIntegrationTest {
         assertThat(result).containsEntry("state", "FINALIZED");
 
 
-        RecordedRequest getRequest = mockWebServer.takeRequest();
+        var getRequest = mockWebServer.takeRequest();
         assertThat(getRequest.getPath()).contains("/contractnegotiations/" + negotiationId);
         assertThat(getRequest.getMethod()).isEqualTo("GET");
     }
@@ -383,7 +390,7 @@ class ManagementApiClientIntegrationTest {
         assertThat(result).hasSize(1);
         assertThat(result.getFirst()).containsEntry("@id", "negotiation-123");
 
-        RecordedRequest queryRequest = mockWebServer.takeRequest();
+        var queryRequest = mockWebServer.takeRequest();
         assertThat(queryRequest.getPath()).contains("/contractnegotiations/request");
     }
 
@@ -407,7 +414,7 @@ class ManagementApiClientIntegrationTest {
         managementApiClient.createCelExpression(celExpression);
 
         // Assert
-        RecordedRequest celRequest = mockWebServer.takeRequest();
+        var celRequest = mockWebServer.takeRequest();
         assertThat(celRequest.getPath()).isEqualTo("/v4alpha/celexpressions");
         assertThat(celRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
         assertThat(celRequest.getBody().readUtf8()).contains("cel-123");
@@ -431,7 +438,7 @@ class ManagementApiClientIntegrationTest {
         managementApiClient.prepareDataplane(participantContextId, dataplaneRegistration);
 
         // Assert
-        RecordedRequest dataplaneRequest = mockWebServer.takeRequest();
+        var dataplaneRequest = mockWebServer.takeRequest();
         assertThat(dataplaneRequest.getPath()).isEqualTo("/v4alpha/dataplanes/" + participantContextId);
         assertThat(dataplaneRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
     }
@@ -472,7 +479,7 @@ class ManagementApiClientIntegrationTest {
         assertThat(result.getFirst().getTransferType()).isEqualTo("HttpData-PULL");
         assertThat(result.getFirst().getDataPlaneId()).isEqualTo("dataplane-1");
 
-        RecordedRequest listRequest = mockWebServer.takeRequest();
+        var listRequest = mockWebServer.takeRequest();
         assertThat(listRequest.getPath()).contains("/transferprocesses/request");
         assertThat(listRequest.getMethod()).isEqualTo("POST");
         assertThat(listRequest.getHeader("Authorization")).isEqualTo("Bearer test-token");
@@ -492,7 +499,7 @@ class ManagementApiClientIntegrationTest {
         // Assert
         assertThat(result).isEmpty();
 
-        RecordedRequest listRequest = mockWebServer.takeRequest();
+        var listRequest = mockWebServer.takeRequest();
         assertThat(listRequest.getPath()).contains("/transferprocesses/request");
         assertThat(listRequest.getMethod()).isEqualTo("POST");
     }
@@ -541,7 +548,7 @@ class ManagementApiClientIntegrationTest {
         assertThat(result.get(1).getAssetId()).isEqualTo("asset-456");
         assertThat(result.get(2).getAssetId()).isEqualTo("asset-789");
 
-        RecordedRequest listRequest = mockWebServer.takeRequest();
+        var listRequest = mockWebServer.takeRequest();
         assertThat(listRequest.getPath()).contains("/transferprocesses/request");
     }
 
