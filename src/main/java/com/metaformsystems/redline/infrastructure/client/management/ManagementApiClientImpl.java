@@ -331,6 +331,17 @@ public class ManagementApiClientImpl implements ManagementApiClient {
                 .block();
     }
 
+    @Override
+    public Map<String, Object> getEdr(String participantContextId, String transferProcessId) {
+        return controlPlaneWebClient.get()
+                .uri("/v1alpha/participants/{participantContextId}/edr/{transferProcessId}", participantContextId, transferProcessId)
+                .header("Authorization", "Bearer " + getToken(participantContextId))
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+                })
+                .block();
+    }
+
     private String getToken(String participantContextId) {
         var participantProfile = participantRepository.findByParticipantContextId(participantContextId)
                 .orElseThrow(() -> new ObjectNotFoundException("Participant not found with context id: " + participantContextId));

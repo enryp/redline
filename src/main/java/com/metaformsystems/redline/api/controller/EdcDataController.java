@@ -17,6 +17,7 @@ package com.metaformsystems.redline.api.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metaformsystems.redline.api.dto.request.ContractRequest;
+import com.metaformsystems.redline.api.dto.request.CounterPartyIdWrapper;
 import com.metaformsystems.redline.api.dto.request.TransferProcessRequest;
 import com.metaformsystems.redline.api.dto.response.Contract;
 import com.metaformsystems.redline.api.dto.response.ContractNegotiation;
@@ -43,7 +44,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -128,9 +128,9 @@ public class EdcDataController {
                                                   @PathVariable Long providerId,
                                                   @PathVariable Long tenantId,
                                                   @PathVariable Long participantId,
-                                                  @RequestParam String counterPartyIdentifier) {
+                                                  @RequestBody CounterPartyIdWrapper counterPartyIdentifierWrapper) {
 
-        var catalog = dataAccessService.requestCatalog(participantId, counterPartyIdentifier, cacheControl);
+        var catalog = dataAccessService.requestCatalog(participantId, counterPartyIdentifierWrapper.counterPartyIdentifier(), cacheControl);
         return ResponseEntity.ok(catalog);
     }
 
@@ -283,7 +283,7 @@ public class EdcDataController {
                                                   @PathVariable Long participantId,
                                                   @RequestBody TransferProcessRequest transferRequest) {
 
-        return ResponseEntity.ok(dataAccessService.initiateTransferProcess(providerId, transferRequest));
+        return ResponseEntity.ok(dataAccessService.initiateTransferProcess(participantId, transferRequest));
     }
 
     @GetMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/transfers/{transferProcessId}")
@@ -294,4 +294,15 @@ public class EdcDataController {
         var transferProcess = dataAccessService.getTransferProcess(participantId, transferProcessId);
         return ResponseEntity.ok(transferProcess);
     }
+
+    @GetMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/files/{fileId}")
+    public ResponseEntity<byte[]> downloadData(@PathVariable Long providerId,
+                                               @PathVariable Long tenantId,
+                                               @PathVariable Long participantId,
+                                               @PathVariable String fileId,
+                                               @RequestHeader(name = "Authorization") String authorizationHeader) {
+        var data = dataAccessService.downloadData(participantId, fileId, authorizationHeader);
+        return ResponseEntity.ok(data);
+    }
+
 }

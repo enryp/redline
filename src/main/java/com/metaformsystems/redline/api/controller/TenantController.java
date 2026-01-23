@@ -14,6 +14,7 @@
 
 package com.metaformsystems.redline.api.controller;
 
+import com.metaformsystems.redline.api.dto.request.DataPlaneRegistrationRequest;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
 import com.metaformsystems.redline.api.dto.request.ServiceProvider;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
@@ -135,6 +136,14 @@ public class TenantController {
                                                          @RequestBody ParticipantDeployment deployment) {
         var participant = tenantService.deployParticipant(deployment);
         return ResponseEntity.ok(participant);
+    }
+
+    @PostMapping("service-providers/{serviceProviderId}/tenants/{tenantId}/participants/{participantId}/dataplanes")
+    public ResponseEntity<Void> registerDataPlane(@PathVariable Long serviceProviderId,
+                                                  @PathVariable Long tenantId,
+                                                  @PathVariable Long participantId) {
+        tenantService.registerDataPlane(participantId, DataPlaneRegistrationRequest.ofDefault());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("service-providers/{serviceProviderId}/tenants/{tenantId}")

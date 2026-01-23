@@ -60,7 +60,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-@EnabledIfEnvironmentVariable(named = "ENABLE_ONBOARDING_TESTS", matches = "true", disabledReason = "This can only run if ENABLE_ONBOARDING_TESTS=true is set in the environment.")
+@EnabledIfEnvironmentVariable(named = "ENABLE_E2E_TESTS", matches = "true", disabledReason = "This can only run if ENABLE_ONBOARDING_TESTS=true is set in the environment.")
 @SpringBootTest
 @ActiveProfiles("dev")
 // disable transactional tests, because awaitility is used, and opening new threads creates new transactions.
@@ -228,7 +228,7 @@ public class OnboardingEndToEndTest {
 
         // initiate transfer
         var rq = TransferProcessRequest.Builder.aNewTransferRequest()
-                .counterPartyAddress(dspEndpointUrl)
+                .counterPartyId(dspEndpointUrl)
                 .contractId(cn.get().getContractAgreementId())
                 .dataDestination(Map.of(
                         "@type", "DataAddress",

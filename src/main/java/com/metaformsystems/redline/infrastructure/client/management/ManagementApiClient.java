@@ -88,4 +88,6 @@ public interface ManagementApiClient {
     List<ContractNegotiation> listContracts(String participantContextId);
 
     ContractAgreement getAgreement(String participantContextId, String negotiationId);
+
+    Map<String, Object> getEdr(String participantContextId, String transferProcessId);
 }

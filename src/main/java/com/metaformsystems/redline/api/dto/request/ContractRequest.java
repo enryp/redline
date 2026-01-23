@@ -71,4 +71,50 @@ public class ContractRequest {
     public void setOfferId(String offerId) {
         this.offerId = offerId;
     }
+
+    public static final class Builder {
+        private final ContractRequest contractRequest;
+
+        private Builder() {
+            contractRequest = new ContractRequest();
+        }
+
+        public static Builder aContractRequest() {
+            return new Builder();
+        }
+
+        public Builder offerId(String offerId) {
+            contractRequest.setOfferId(offerId);
+            return this;
+        }
+
+        public Builder providerId(String providerId) {
+            contractRequest.setProviderId(providerId);
+            return this;
+        }
+
+        public Builder assetId(String assetId) {
+            contractRequest.setAssetId(assetId);
+            return this;
+        }
+
+        public Builder permissions(List<Constraint> permissions) {
+            contractRequest.setPermissions(permissions);
+            return this;
+        }
+
+        public Builder prohibitions(List<Constraint> prohibitions) {
+            contractRequest.setProhibitions(prohibitions);
+            return this;
+        }
+
+        public Builder obligations(List<Constraint> obligations) {
+            contractRequest.setObligations(obligations);
+            return this;
+        }
+
+        public ContractRequest build() {
+            return contractRequest;
+        }
+    }
 }

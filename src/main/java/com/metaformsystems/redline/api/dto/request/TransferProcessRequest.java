@@ -17,17 +17,20 @@ package com.metaformsystems.redline.api.dto.request;
 import java.util.Map;
 
 public class TransferProcessRequest {
-    private String counterPartyAddress;
+    /**
+     * Web DID of the counter party
+     */
+    private String counterPartyId;
     private String contractId;
     private Map<String, Object> dataDestination;
     private String transferType;
 
-    public String getCounterPartyAddress() {
-        return counterPartyAddress;
+    public String getCounterPartyId() {
+        return counterPartyId;
     }
 
-    public void setCounterPartyAddress(String counterPartyAddress) {
-        this.counterPartyAddress = counterPartyAddress;
+    public void setCounterPartyId(String counterPartyId) {
+        this.counterPartyId = counterPartyId;
     }
 
     public String getContractId() {
@@ -65,8 +68,8 @@ public class TransferProcessRequest {
             return new Builder();
         }
 
-        public Builder counterPartyAddress(String counterPartyAddress) {
-            transferProcessRequest.setCounterPartyAddress(counterPartyAddress);
+        public Builder counterPartyId(String counterPartyId) {
+            transferProcessRequest.setCounterPartyId(counterPartyId);
             return this;
         }
 

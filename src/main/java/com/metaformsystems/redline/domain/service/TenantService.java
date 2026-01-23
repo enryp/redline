@@ -14,6 +14,7 @@
 
 package com.metaformsystems.redline.domain.service;
 
+import com.metaformsystems.redline.api.dto.request.DataPlaneRegistrationRequest;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
 import com.metaformsystems.redline.api.dto.response.Participant;
@@ -28,6 +29,8 @@ import com.metaformsystems.redline.domain.repository.ParticipantRepository;
 import com.metaformsystems.redline.domain.repository.ServiceProviderRepository;
 import com.metaformsystems.redline.domain.repository.TenantRepository;
 import com.metaformsystems.redline.infrastructure.client.hashicorpvault.HashicorpVaultClient;
+import com.metaformsystems.redline.infrastructure.client.management.ManagementApiClient;
+import com.metaformsystems.redline.infrastructure.client.management.dto.DataplaneRegistration;
 import com.metaformsystems.redline.infrastructure.client.tenantmanager.v1alpha1.TenantManagerClient;
 import com.metaformsystems.redline.infrastructure.client.tenantmanager.v1alpha1.dto.ParticipantProfile;
 import com.metaformsystems.redline.infrastructure.client.tenantmanager.v1alpha1.dto.TenantCreationRequest;
@@ -61,18 +64,20 @@ public class TenantService {
     private final ServiceProviderRepository serviceProviderRepository;
     private final TenantManagerClient tenantManagerClient;
     private final HashicorpVaultClient vaultClient;
+    private final ManagementApiClient managementApiClient;
 
 
     public TenantService(TenantRepository tenantRepository,
                          ParticipantRepository participantRepository,
                          ServiceProviderRepository serviceProviderRepository,
                          TenantManagerClient tenantManagerClient,
-                         HashicorpVaultClient vaultClient) {
+                         HashicorpVaultClient vaultClient, ManagementApiClient managementApiClient) {
         this.tenantRepository = tenantRepository;
         this.participantRepository = participantRepository;
         this.serviceProviderRepository = serviceProviderRepository;
         this.tenantManagerClient = tenantManagerClient;
         this.vaultClient = vaultClient;
+        this.managementApiClient = managementApiClient;
     }
 
     @Transactional
@@ -216,6 +221,20 @@ public class TenantService {
                 .flatMap(i -> i.getPartners().stream())
                 .map(r -> new PartnerReference(r.identifier(), r.nickname()))
                 .toList();
+    }
+
+    public void registerDataPlane(Long participantId, DataPlaneRegistrationRequest request) {
+        var participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
+        var participantContextId = participant.getParticipantContextId();
+
+        //todo: replace magic strings with parameters
+        managementApiClient.prepareDataplane(participantContextId, DataplaneRegistration.Builder.aDataplaneRegistration()
+                .allowedSourceTypes(request.allowedSourceTypes())
+                .allowedTransferTypes(request.allowedTransferTypes())
+                .destinationProvisionTypes(request.destinationProvisionTypes())
+                .url(request.url())
+                .build());
     }
 
     private @Nullable String extractParticipantContextId(ParticipantProfile participant) {
