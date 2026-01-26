@@ -706,7 +706,7 @@ class TenantServiceIntegrationTest {
     }
 
     @Test
-    void shouldCreatePartnerReference_whenDataspaceInfoNotFound() {
+    void shouldNotCreatePartnerReference_whenDataspaceInfoNotFound() {
         final var tenant = new Tenant();
         tenant.setName("Test Tenant");
         tenant.setServiceProvider(serviceProvider);
