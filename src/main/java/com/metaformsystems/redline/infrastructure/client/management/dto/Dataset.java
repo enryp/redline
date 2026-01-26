@@ -33,10 +33,7 @@ public class Dataset {
     @JsonProperty("distribution")
     private List<Distribution> distribution;
 
-    @JsonProperty("description")
-    private String description;
-
-    @JsonProperty("properties")
+    @JsonProperty("edc:properties")
     private Map<String, Object> properties = new HashMap<>();
 
     public String getId() {
@@ -69,14 +66,6 @@ public class Dataset {
 
     public void setDistribution(List<Distribution> distribution) {
         this.distribution = distribution;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public Map<String, Object> getProperties() {

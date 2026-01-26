@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.metaformsystems.redline.domain.service.Constants.ASSET_PERMISSION;
 import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_CONTRACT_DEFINITION;
@@ -70,21 +72,23 @@ public class DataAccessService {
     }
 
     @Transactional
-    public void uploadFileForParticipant(Long participantId, Map<String, Object> metadata, InputStream fileStream, String contentType, String originalFilename) {
+    public void uploadFileForParticipant(Long participantId, Map<String, Object> publicMetadata, Map<String, Object> privateMetadata, InputStream fileStream, String contentType, String originalFilename) {
 
         var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         var participantContextId = participant.getParticipantContextId();
 
         //0. upload file to data plane
         var assetId = UUID.randomUUID().toString();
-        metadata.put("assetId", assetId);
-        var response = dataPlaneApiClient.uploadMultipart(participantContextId, metadata, fileStream);
+        publicMetadata.put("assetId", assetId);
+        var combinedMetadata = Stream.of(publicMetadata, privateMetadata).flatMap(m -> m.entrySet().stream())
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        var response = dataPlaneApiClient.uploadMultipart(participantContextId, combinedMetadata, fileStream);
         var fileId = response.id();
 
         //1. create asset
-        metadata.put("fileId", fileId);
+        publicMetadata.put("fileId", fileId);
 
-        var asset = createAsset(assetId, metadata, contentType, originalFilename);
+        var asset = createAsset(assetId, publicMetadata, privateMetadata, contentType, originalFilename);
         managementApiClient.createAsset(participantContextId, asset);
 
         // create CEL expression
@@ -114,7 +118,7 @@ public class DataAccessService {
 
 
         //2. track uploaded file in DB
-        participant.getUploadedFiles().add(new UploadedFile(fileId, originalFilename, contentType, metadata));
+        participant.getUploadedFiles().add(new UploadedFile(fileId, originalFilename, contentType, publicMetadata));
     }
 
     @Transactional
@@ -261,13 +265,15 @@ public class DataAccessService {
         return negotiation;
     }
 
-    private Asset createAsset(String id, Map<String, Object> metadata, String contentType, String originalFilename) {
+    private Asset createAsset(String id, Map<String, Object> publicMetadata, Map<String, Object> privateMetadata, String contentType, String originalFilename) {
 
         var properties = new HashMap<String, Object>(Map.of(
                 "description", "A file uploaded by Redline on " + Instant.now().toString(),
                 "contentType", contentType,
                 "originalFilename", originalFilename));
-        properties.putAll(metadata);
+        properties.putAll(publicMetadata);
+
+        privateMetadata.put("permission", ASSET_PERMISSION);
 
         return Asset.Builder.aNewAsset()
                 .id(id)
@@ -275,8 +281,8 @@ public class DataAccessService {
                         "type", "HttpCertData",
                         "@type", "DataAddress"
                 ))
-                .privateProperties(Map.of("permission", ASSET_PERMISSION)) //this is targeted by the CEL expression, so it must be a private property
-                .properties(properties)
+                .privateProperties(privateMetadata) //this is targeted by the CEL expression, so it must be a private property
+                .properties(Map.of("properties", properties))
                 .build();
     }
 

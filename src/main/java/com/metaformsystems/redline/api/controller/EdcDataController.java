@@ -81,13 +81,14 @@ public class EdcDataController {
     public ResponseEntity<Void> uploadFile(@PathVariable Long participantId,
                                            @PathVariable Long tenantId,
                                            @PathVariable Long providerId,
-                                           @RequestPart("metadata") String metadata,
+                                           @RequestPart("publicMetadata") String publicMetadata,
+                                           @RequestPart("privateMetadata") String privateMetadata,
                                            @RequestPart("file") MultipartFile file) {
 
         try {
-            var metadataMap = objectMapper.readValue(metadata, new TypeReference<Map<String, Object>>() {
-            });
-            dataAccessService.uploadFileForParticipant(participantId, metadataMap, file.getInputStream(), file.getContentType(), file.getOriginalFilename());
+            var publicMetadataMap = objectMapper.readValue(publicMetadata, new TypeReference<Map<String, Object>>() {});
+            var privateMetadataMap = objectMapper.readValue(privateMetadata, new TypeReference<Map<String, Object>>() {});
+            dataAccessService.uploadFileForParticipant(participantId, publicMetadataMap, privateMetadataMap, file.getInputStream(), file.getContentType(), file.getOriginalFilename());
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
@@ -123,7 +124,6 @@ public class EdcDataController {
     @Parameter(name = "providerId", description = "Database ID of the service provider", required = true)
     @Parameter(name = "tenantId", description = "Database ID of the tenant", required = true)
     @Parameter(name = "participantId", description = "Database ID of the participant", required = true)
-    @Parameter(name = "counterPartyIdentifier", description = "Identifier of the counter-party to request catalog from", required = true)
     public ResponseEntity<Catalog> requestCatalog(@RequestHeader(name = "Cache-Control", required = false, defaultValue = "no-cache") String cacheControl,
                                                   @PathVariable Long providerId,
                                                   @PathVariable Long tenantId,
@@ -172,6 +172,7 @@ public class EdcDataController {
                     .type(cn.getType());
 
             if (cn.getContractAgreement() != null) {
+                builder.id(cn.getContractAgreement().getId());
                 builder.agreementId(cn.getContractAgreement().getAgreementId());
                 builder.assetId(cn.getContractAgreement().getAssetId());
                 builder.signingDate(Instant.ofEpochSecond(cn.getContractAgreement().getContractSigningDate()));
@@ -195,7 +196,7 @@ public class EdcDataController {
     @Parameter(name = "providerId", description = "Database ID of the service provider", required = true)
     @Parameter(name = "tenantId", description = "Database ID of the tenant", required = true)
     @Parameter(name = "participantId", description = "Database ID of the participant", required = true)
-    @PostMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/contracts")
+    @PostMapping(value = "service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/contracts", produces = "text/plain")
     public ResponseEntity<String> requestContract(@PathVariable Long providerId,
                                                   @PathVariable Long tenantId,
                                                   @PathVariable Long participantId,

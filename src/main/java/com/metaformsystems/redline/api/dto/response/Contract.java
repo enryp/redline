@@ -19,6 +19,8 @@ import java.util.Map;
 
 public class Contract {
     private boolean isPending = true;
+
+    private String id;
     private String counterParty;
     private String type;
     private String agreementId;
@@ -35,6 +37,14 @@ public class Contract {
 
     public void setPending(boolean pending) {
         isPending = pending;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getCounterParty() {
@@ -119,6 +129,11 @@ public class Contract {
 
         public Builder type(String type) {
             contract.setType(type);
+            return this;
+        }
+
+        public Builder id(String id) {
+            contract.setId(id);
             return this;
         }
 

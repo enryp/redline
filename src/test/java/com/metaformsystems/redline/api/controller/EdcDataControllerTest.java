@@ -164,8 +164,10 @@ public class EdcDataControllerTest {
         );
 
         // Create metadata
-        var metadataPart = new MockPart("metadata", "{\"foo\": \"bar\"}".getBytes());
-        metadataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        var publicMetadata = new MockPart("publicMetadata", "{\"foo\": \"bar\"}".getBytes());
+        publicMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        var privateMetadata = new MockPart("privateMetadata", "{\"private\": \"value\"}".getBytes());
+        privateMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         // Mock the upload response from the dataplane
         mockWebServer.enqueue(new MockResponse()
@@ -189,7 +191,7 @@ public class EdcDataControllerTest {
         mockMvc.perform(multipart("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/files",
                         serviceProvider.getId(), tenant.getId(), participant.getId())
                         .file(mockFile)
-                        .part(metadataPart))
+                        .part(publicMetadata, privateMetadata))
                 .andExpect(status().isOk());
 
         assertThat(participantRepository.findById(participant.getId())).isPresent()

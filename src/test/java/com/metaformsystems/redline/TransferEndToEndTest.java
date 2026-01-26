@@ -83,7 +83,8 @@ public class TransferEndToEndTest {
         baseRequest()
                 .contentType(ContentType.MULTIPART)
                 .multiPart("file", "testfile.txt", "This is a test file.".getBytes())
-                .multiPart("metadata", "{\"slug\": \"%s\"}".formatted(slug), "application/json")
+                .multiPart("publicMetadata", "{\"slug\": \"%s\"}".formatted(slug), "application/json")
+                .multiPart("privateMetadata", "{\"privateSlug\": \"%s\"}".formatted(slug), "application/json")
                 .post("/api/ui/service-providers/%s/tenants/%s/participants/%s/files".formatted(SERVICE_PROVIDER_ID, provider.tenantId(), provider.participantId()))
                 .then()
                 .statusCode(200);
