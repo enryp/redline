@@ -653,7 +653,7 @@ class TenantServiceIntegrationTest {
     }
 
     @Test
-    void shouldCreatePartnerReference_whenParticipantNotFound() {
+    void shouldNotCreatePartnerReference_whenParticipantNotFound() {
         var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
         var registration = new TenantRegistration("Test Tenant", infos);
         var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
