@@ -16,6 +16,7 @@ package com.metaformsystems.redline.domain.service;
 
 import com.metaformsystems.redline.api.dto.request.DataPlaneRegistrationRequest;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
+import com.metaformsystems.redline.api.dto.request.PartnerReferenceRequest;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
 import com.metaformsystems.redline.api.dto.response.Dataspace;
 import com.metaformsystems.redline.api.dto.response.Participant;
@@ -219,12 +220,48 @@ public class TenantService {
     }
 
     @Transactional
+    public PartnerReference createPartnerReference(Long providerId, Long tenantId, Long participantId, Long dataspaceId, PartnerReferenceRequest request) {
+        // Find participant first
+        var participant = participantRepository.findById(participantId)
+                .orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
+
+        // Verify participant belongs to the specified tenant
+        if (participant.getTenant() == null || !participant.getTenant().getId().equals(tenantId)) {
+            throw new ObjectNotFoundException("Participant " + participantId + " does not belong to tenant " + tenantId);
+        }
+
+        // Verify tenant belongs to the specified service provider
+        var tenant = participant.getTenant();
+        if (tenant.getServiceProvider() == null || !tenant.getServiceProvider().getId().equals(providerId)) {
+            throw new ObjectNotFoundException("Tenant " + tenantId + " does not belong to service provider " + providerId);
+        }
+
+        // Find dataspace info
+        var dataspaceInfo = participant.getDataspaceInfos().stream()
+                .filter(i -> i.getDataspaceId().equals(dataspaceId))
+                .findFirst()
+                .orElseThrow(() -> new ObjectNotFoundException("Dataspace info not found for participant " + participantId + " and dataspace " + dataspaceId));
+
+        // Create and add partner reference
+        var partnerReference = new com.metaformsystems.redline.domain.entity.PartnerReference(
+                request.identifier(),
+                request.nickname(),
+                request.properties() != null ? request.properties() : new java.util.HashMap<>()
+        );
+
+        dataspaceInfo.getPartners().add(partnerReference);
+        participantRepository.save(participant);
+
+        return new PartnerReference(partnerReference.identifier(), partnerReference.nickname(), partnerReference.properties());
+    }
+
+    @Transactional
     public List<PartnerReference> getPartnerReferences(Long participantId, Long dataspacesId) {
         return participantRepository.findById(participantId).stream()
                 .flatMap(p -> p.getDataspaceInfos().stream())
                 .filter(i -> i.getDataspaceId().equals(dataspacesId))
                 .flatMap(i -> i.getPartners().stream())
-                .map(r -> new PartnerReference(r.identifier(), r.nickname()))
+                .map(r -> new PartnerReference(r.identifier(), r.nickname(), r.properties()))
                 .toList();
     }
 

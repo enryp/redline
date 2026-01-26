@@ -12,9 +12,19 @@
  *
  */
 
-package com.metaformsystems.redline.api.dto.response;
+package com.metaformsystems.redline.api.dto.request;
 
 import java.util.Map;
 
-public record PartnerReference(String identifier, String nickname, Map<String, Object> properties) {
+/**
+ * Request DTO for creating a partner reference.
+ */
+public record PartnerReferenceRequest(
+        String identifier,
+        String nickname,
+        Map<String, Object> properties
+) {
+    public PartnerReferenceRequest(String identifier, String nickname) {
+        this(identifier, nickname, Map.of());
+    }
 }

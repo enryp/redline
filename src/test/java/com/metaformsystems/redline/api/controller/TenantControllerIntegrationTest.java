@@ -17,6 +17,7 @@ package com.metaformsystems.redline.api.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.metaformsystems.redline.api.dto.request.DataspaceInfo;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
+import com.metaformsystems.redline.api.dto.request.PartnerReferenceRequest;
 import com.metaformsystems.redline.api.dto.request.ServiceProvider;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
 import com.metaformsystems.redline.application.service.TokenProvider;
@@ -478,6 +479,100 @@ class TenantControllerIntegrationTest {
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[*].id").value(org.hamcrest.Matchers.containsInAnyOrder(dataspace.getId().intValue(), dataspace2.getId().intValue())))
                 .andExpect(jsonPath("$[*].name").value(org.hamcrest.Matchers.containsInAnyOrder("Test Dataspace", "Second Dataspace")));
+    }
+
+    @Test
+    void shouldCreatePartnerReference() throws Exception {
+        // Create a tenant and participant with dataspace info
+        var tenant = new Tenant();
+        tenant.setName("Test Tenant");
+        tenant.setServiceProvider(serviceProvider);
+        tenant = tenantRepository.save(tenant);
+
+        var participant = new Participant();
+        participant.setIdentifier("Test Participant");
+        participant.setTenant(tenant);
+        
+        // Add dataspace info to participant
+        var dataspaceInfo = new com.metaformsystems.redline.domain.entity.DataspaceInfo();
+        dataspaceInfo.setDataspaceId(dataspace.getId());
+        participant.getDataspaceInfos().add(dataspaceInfo);
+        
+        tenant.addParticipant(participant);
+        participant = participantRepository.save(participant);
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name", Map.of("key", "value"));
+
+        mockMvc.perform(post("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/partners/{dataspaceId}",
+                        serviceProvider.getId(), tenant.getId(), participant.getId(), dataspace.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.identifier").value("did:web:partner.com"))
+                .andExpect(jsonPath("$.nickname").value("Partner Name"))
+                .andExpect(jsonPath("$.properties.key").value("value"));
+
+        // Verify partner was saved
+        var savedParticipant = participantRepository.findById(participant.getId()).orElseThrow();
+        var savedDataspaceInfo = savedParticipant.getDataspaceInfos().iterator().next();
+        assertThat(savedDataspaceInfo.getPartners()).hasSize(1);
+        assertThat(savedDataspaceInfo.getPartners().get(0).identifier()).isEqualTo("did:web:partner.com");
+        assertThat(savedDataspaceInfo.getPartners().get(0).nickname()).isEqualTo("Partner Name");
+    }
+
+    @Test
+    void shouldCreatePartnerReference_withProperties() throws Exception {
+        // Create a tenant and participant with dataspace info
+        var tenant = new Tenant();
+        tenant.setName("Test Tenant");
+        tenant.setServiceProvider(serviceProvider);
+        tenant = tenantRepository.save(tenant);
+
+        var participant = new Participant();
+        participant.setIdentifier("Test Participant");
+        participant.setTenant(tenant);
+        
+        var dataspaceInfo = new com.metaformsystems.redline.domain.entity.DataspaceInfo();
+        dataspaceInfo.setDataspaceId(dataspace.getId());
+        participant.getDataspaceInfos().add(dataspaceInfo);
+        
+        tenant.addParticipant(participant);
+        participant = participantRepository.save(participant);
+
+        var properties = Map.<String, Object>of(
+                "region", "EU",
+                "compliance", "GDPR",
+                "metadata", Map.of("createdBy", "admin", "tags", List.of("partner", "trusted"))
+        );
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name", properties);
+
+        mockMvc.perform(post("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/partners/{dataspaceId}",
+                        serviceProvider.getId(), tenant.getId(), participant.getId(), dataspace.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.identifier").value("did:web:partner.com"))
+                .andExpect(jsonPath("$.nickname").value("Partner Name"))
+                .andExpect(jsonPath("$.properties.region").value("EU"))
+                .andExpect(jsonPath("$.properties.compliance").value("GDPR"));
+    }
+
+    @Test
+    void shouldNotCreatePartnerReference_whenParticipantNotFound() throws Exception {
+        var tenant = new Tenant();
+        tenant.setName("Test Tenant");
+        tenant.setServiceProvider(serviceProvider);
+        tenant = tenantRepository.save(tenant);
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        mockMvc.perform(post("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/partners/{dataspaceId}",
+                        serviceProvider.getId(), tenant.getId(), 999L, dataspace.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Participant not found")));
     }
 
     @Test

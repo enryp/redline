@@ -14,11 +14,34 @@
 
 package com.metaformsystems.redline.domain.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Embeddable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A reference to a partner organization. The identifier is the participant identifier such as a DID.
  */
 @Embeddable
-public record PartnerReference(String identifier, String nickname) {
+public record PartnerReference(
+        String identifier,
+        String nickname,
+
+        @Column(name = "properties", columnDefinition = "TEXT")
+        @Convert(converter = HashMapConverter.class)
+        Map<String, Object> properties
+) {
+    public PartnerReference {
+        // Canonical constructor - initialize properties if null
+        if (properties == null) {
+            properties = new HashMap<>();
+        }
+    }
+    
+    // Convenience constructor for backward compatibility
+    public PartnerReference(String identifier, String nickname) {
+        this(identifier, nickname, new HashMap<>());
+    }
 }

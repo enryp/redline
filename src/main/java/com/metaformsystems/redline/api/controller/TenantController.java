@@ -16,6 +16,7 @@ package com.metaformsystems.redline.api.controller;
 
 import com.metaformsystems.redline.api.dto.request.DataPlaneRegistrationRequest;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
+import com.metaformsystems.redline.api.dto.request.PartnerReferenceRequest;
 import com.metaformsystems.redline.api.dto.request.ServiceProvider;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
 import com.metaformsystems.redline.api.dto.response.Dataspace;
@@ -200,6 +201,29 @@ public class TenantController {
         var references = tenantService.getPartnerReferences(participantId, dataspaceId);
         // TODO auth check for provider access
         return ResponseEntity.ok(references);
+    }
+
+    @PostMapping("service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/partners/{dataspaceId}")
+//    @PreAuthorize("hasRole('USER')")
+    @Operation(summary = "Create partner reference", description = "Creates a new partner reference for a participant in a specific dataspace")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Partner reference successfully created",
+                    content = @Content(schema = @Schema(implementation = PartnerReference.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid partner reference data"),
+            @ApiResponse(responseCode = "404", description = "Service provider, tenant, participant, or dataspace not found")
+    })
+    @Parameter(name = "providerId", description = "Database ID of the service provider", required = true)
+    @Parameter(name = "tenantId", description = "Database ID of the tenant", required = true)
+    @Parameter(name = "participantId", description = "Database ID of the participant", required = true)
+    @Parameter(name = "dataspaceId", description = "Database ID of the dataspace", required = true)
+    public ResponseEntity<PartnerReference> createPartner(@PathVariable Long providerId,
+                                                         @PathVariable Long tenantId,
+                                                         @PathVariable Long participantId,
+                                                         @PathVariable Long dataspaceId,
+                                                         @RequestBody PartnerReferenceRequest request) {
+        var partnerReference = tenantService.createPartnerReference(providerId, tenantId, participantId, dataspaceId, request);
+        // TODO auth check for provider access
+        return ResponseEntity.ok(partnerReference);
     }
 
     @GetMapping("service-providers/{serviceProviderId}/tenants/{tenantId}/participants/{participantId}/dataspaces")

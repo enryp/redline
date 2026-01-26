@@ -16,6 +16,7 @@ package com.metaformsystems.redline.domain.service;
 
 import com.metaformsystems.redline.api.dto.request.DataspaceInfo;
 import com.metaformsystems.redline.api.dto.request.ParticipantDeployment;
+import com.metaformsystems.redline.api.dto.request.PartnerReferenceRequest;
 import com.metaformsystems.redline.api.dto.request.TenantRegistration;
 import com.metaformsystems.redline.api.dto.response.VirtualParticipantAgent;
 import com.metaformsystems.redline.application.service.TokenProvider;
@@ -455,8 +456,10 @@ class TenantServiceIntegrationTest {
         var participant = participantRepository.findById(participantId).orElseThrow();
         var dataspaceInfo = participant.getDataspaceInfos().iterator().next();
         var references = new ArrayList<PartnerReference>();
-        references.add(new PartnerReference("did:web:partner1.com", "Partner One"));
-        references.add(new PartnerReference("did:web:partner2.com", "Partner Two"));
+        var partner1Properties = Map.<String, Object>of("key1", "value1", "key2", 123);
+        var partner2Properties = Map.<String, Object>of("key3", "value3");
+        references.add(new PartnerReference("did:web:partner1.com", "Partner One", partner1Properties));
+        references.add(new PartnerReference("did:web:partner2.com", "Partner Two", partner2Properties));
         dataspaceInfo.setPartners(references);
         participantRepository.save(participant);
 
@@ -465,8 +468,44 @@ class TenantServiceIntegrationTest {
 
 
         assertThat(result).hasSize(2);
-        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner1.com") && ref.nickname().equals("Partner One"));
-        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner2.com") && ref.nickname().equals("Partner Two"));
+        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner1.com") 
+                && ref.nickname().equals("Partner One")
+                && ref.properties().equals(partner1Properties));
+        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner2.com") 
+                && ref.nickname().equals("Partner Two")
+                && ref.properties().equals(partner2Properties));
+    }
+
+    @Test
+    void shouldGetPartnerReferences_withEmptyProperties() {
+
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
+        var participantId = tenant.participants().iterator().next().id();
+
+        // Add partners to the participant's dataspace info with empty properties
+        var participant = participantRepository.findById(participantId).orElseThrow();
+        var dataspaceInfo = participant.getDataspaceInfos().iterator().next();
+        var references = new ArrayList<PartnerReference>();
+        references.add(new PartnerReference("did:web:partner1.com", "Partner One"));
+        references.add(new PartnerReference("did:web:partner2.com", "Partner Two", Map.of()));
+        dataspaceInfo.setPartners(references);
+        participantRepository.save(participant);
+
+
+        var result = tenantService.getPartnerReferences(participantId, dataspace.getId());
+
+
+        assertThat(result).hasSize(2);
+        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner1.com") 
+                && ref.nickname().equals("Partner One")
+                && ref.properties() != null
+                && ref.properties().isEmpty());
+        assertThat(result).anyMatch(ref -> ref.identifier().equals("did:web:partner2.com") 
+                && ref.nickname().equals("Partner Two")
+                && ref.properties() != null
+                && ref.properties().isEmpty());
     }
 
     @Test
@@ -547,6 +586,145 @@ class TenantServiceIntegrationTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldCreatePartnerReference() {
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
+        var participantId = tenant.participants().iterator().next().id();
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name", Map.of("key", "value"));
+
+        var result = tenantService.createPartnerReference(serviceProvider.getId(), tenant.id(), participantId, dataspace.getId(), request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.identifier()).isEqualTo("did:web:partner.com");
+        assertThat(result.nickname()).isEqualTo("Partner Name");
+        assertThat(result.properties()).containsEntry("key", "value");
+
+        // Verify partner was saved in database
+        var participant = participantRepository.findById(participantId).orElseThrow();
+        var dataspaceInfo = participant.getDataspaceInfos().iterator().next();
+        assertThat(dataspaceInfo.getPartners()).hasSize(1);
+        assertThat(dataspaceInfo.getPartners().get(0).identifier()).isEqualTo("did:web:partner.com");
+        assertThat(dataspaceInfo.getPartners().get(0).nickname()).isEqualTo("Partner Name");
+    }
+
+    @Test
+    void shouldCreatePartnerReference_withProperties() {
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
+        var participantId = tenant.participants().iterator().next().id();
+
+        var properties = Map.<String, Object>of(
+                "region", "EU",
+                "compliance", "GDPR",
+                "active", true
+        );
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name", properties);
+
+        var result = tenantService.createPartnerReference(serviceProvider.getId(), tenant.id(), participantId, dataspace.getId(), request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.properties()).containsEntry("region", "EU");
+        assertThat(result.properties()).containsEntry("compliance", "GDPR");
+        assertThat(result.properties()).containsEntry("active", true);
+    }
+
+    @Test
+    void shouldCreatePartnerReference_withoutProperties() {
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
+        var participantId = tenant.participants().iterator().next().id();
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        var result = tenantService.createPartnerReference(serviceProvider.getId(), tenant.id(), participantId, dataspace.getId(), request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.identifier()).isEqualTo("did:web:partner.com");
+        assertThat(result.nickname()).isEqualTo("Partner Name");
+        assertThat(result.properties()).isNotNull();
+        assertThat(result.properties()).isEmpty();
+    }
+
+    @Test
+    void shouldNotCreatePartnerReference_whenParticipantNotFound() {
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(serviceProvider.getId(), registration);
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() ->
+                tenantService.createPartnerReference(serviceProvider.getId(), tenant.id(), 999L, dataspace.getId(), request)))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("Participant not found with id: 999");
+    }
+
+    @Test
+    void shouldNotCreatePartnerReference_whenParticipantDoesNotBelongToTenant() {
+        var infos1 = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration1 = new TenantRegistration("Tenant One", infos1);
+        var tenant1 = tenantService.registerTenant(serviceProvider.getId(), registration1);
+        var participantId = tenant1.participants().iterator().next().id();
+
+        var infos2 = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration2 = new TenantRegistration("Tenant Two", infos2);
+        var tenant2 = tenantService.registerTenant(serviceProvider.getId(), registration2);
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() ->
+                tenantService.createPartnerReference(serviceProvider.getId(), tenant2.id(), participantId, dataspace.getId(), request)))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("does not belong to tenant");
+    }
+
+    @Test
+    void shouldNotCreatePartnerReference_whenTenantDoesNotBelongToProvider() {
+        // Create another service provider
+        var otherProvider = new ServiceProvider();
+        otherProvider.setName("Other Provider");
+        otherProvider = serviceProviderRepository.save(otherProvider);
+
+        var infos = List.of(new DataspaceInfo(dataspace.getId(), List.of(), List.of(), Map.of()));
+        var registration = new TenantRegistration("Test Tenant", infos);
+        var tenant = tenantService.registerTenant(otherProvider.getId(), registration);
+        var participantId = tenant.participants().iterator().next().id();
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() ->
+                tenantService.createPartnerReference(serviceProvider.getId(), tenant.id(), participantId, dataspace.getId(), request)))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("does not belong to service provider");
+    }
+
+    @Test
+    void shouldNotCreatePartnerReference_whenDataspaceInfoNotFound() {
+        final var tenant = new Tenant();
+        tenant.setName("Test Tenant");
+        tenant.setServiceProvider(serviceProvider);
+        final var savedTenant = tenantRepository.save(tenant);
+
+        final var participant = new Participant();
+        participant.setIdentifier("Test Participant");
+        participant.setTenant(savedTenant);
+        // No dataspace info added
+        savedTenant.addParticipant(participant);
+        final var savedParticipant = participantRepository.save(participant);
+
+        var request = new PartnerReferenceRequest("did:web:partner.com", "Partner Name");
+
+        assertThat(org.assertj.core.api.Assertions.catchThrowable(() ->
+                tenantService.createPartnerReference(serviceProvider.getId(), savedTenant.getId(), savedParticipant.getId(), dataspace.getId(), request)))
+                .isInstanceOf(ObjectNotFoundException.class)
+                .hasMessageContaining("Dataspace info not found");
     }
 
     @Test
