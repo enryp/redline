@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Metaform Systems, Inc. - initial API and implementation
+ *       Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. - CEL and policy creation for uploaded file
  *
  */
 
@@ -26,6 +27,10 @@ import com.metaformsystems.redline.infrastructure.client.management.dto.Catalog;
 import com.metaformsystems.redline.infrastructure.client.management.dto.CelExpression;
 import com.metaformsystems.redline.infrastructure.client.management.dto.ContractNegotiation;
 import com.metaformsystems.redline.infrastructure.client.management.dto.ContractRequest;
+import com.metaformsystems.redline.infrastructure.client.management.dto.Criterion;
+import com.metaformsystems.redline.infrastructure.client.management.dto.NewContractDefinition;
+import com.metaformsystems.redline.infrastructure.client.management.dto.NewPolicyDefinition;
+import com.metaformsystems.redline.infrastructure.client.management.dto.PolicySet;
 import com.metaformsystems.redline.infrastructure.client.management.dto.TransferProcess;
 import com.metaformsystems.redline.infrastructure.client.management.dto.TransferRequest;
 import org.slf4j.Logger;
@@ -39,6 +44,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,10 +55,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.metaformsystems.redline.domain.service.Constants.ASSET_PERMISSION;
-import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_CONTRACT_DEFINITION;
+import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_CONSTRAINT;
 import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_EXPRESSION;
 import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_EXPRESSION_ID;
-import static com.metaformsystems.redline.domain.service.Constants.MEMBERSHIP_POLICY;
 
 @Service
 public class DataAccessService {
@@ -72,7 +77,7 @@ public class DataAccessService {
     }
 
     @Transactional
-    public void uploadFileForParticipant(Long participantId, Map<String, Object> publicMetadata, Map<String, Object> privateMetadata, InputStream fileStream, String contentType, String originalFilename) {
+    public void uploadFileForParticipant(Long participantId, Map<String, Object> publicMetadata, Map<String, Object> privateMetadata, InputStream fileStream, String contentType, String originalFilename, List<CelExpression> celExpressions,  PolicySet policySet) {
 
         var participant = participantRepository.findById(participantId).orElseThrow(() -> new ObjectNotFoundException("Participant not found with id: " + participantId));
         var participantContextId = participant.getParticipantContextId();
@@ -85,39 +90,54 @@ public class DataAccessService {
         var response = dataPlaneApiClient.uploadMultipart(participantContextId, combinedMetadata, fileStream);
         var fileId = response.id();
 
-        //1. create asset
-        publicMetadata.put("fileId", fileId);
+        //1. create CEL expressions
+        var expressions = new ArrayList<>(celExpressions);
+        expressions.add(CelExpression.Builder.aNewCelExpression()
+                .id(MEMBERSHIP_EXPRESSION_ID)
+                .leftOperand("MembershipCredential")
+                .description("Expression for evaluating membership credential")
+                .scopes(Set.of("catalog", "contract.negotiation", "transfer.process"))
+                .expression(MEMBERSHIP_EXPRESSION)
+                .build());
+        expressions.forEach(celExpression -> {
+            try {
+                managementApiClient.createCelExpression(celExpression);
+            } catch (WebClientResponseException.Conflict e) {
+                //do nothing, CEL expression already exists
+            }
+        });
 
+        //2. create asset
+        publicMetadata.put("fileId", fileId);
         var asset = createAsset(assetId, publicMetadata, privateMetadata, contentType, originalFilename);
         managementApiClient.createAsset(participantContextId, asset);
 
-        // create CEL expression
-        try {
-            managementApiClient.createCelExpression(CelExpression.Builder.aNewCelExpression()
-                    .id(MEMBERSHIP_EXPRESSION_ID)
-                    .leftOperand("MembershipCredential")
-                    .description("Expression for evaluating membership credential")
-                    .scopes(Set.of("catalog", "contract.negotiation", "transfer.process"))
-                    .expression(MEMBERSHIP_EXPRESSION)
-                    .build());
-        } catch (WebClientResponseException.Conflict e) {
-            //do nothing, CEL expression already exists
+        //3. create policy
+        if (policySet != null) {
+            var constraints = new ArrayList<>(List.of(MEMBERSHIP_CONSTRAINT));
+            constraints.addAll(policySet.getPermission().getFirst().getConstraint());
+            policySet.getPermission().getFirst().setConstraint(constraints);
+        } else {
+            policySet = new PolicySet(List.of(new PolicySet.Permission("use",
+                    new ArrayList<>(List.of(MEMBERSHIP_CONSTRAINT))
+            )));
         }
-
-        //2. create policy
-        var policy = MEMBERSHIP_POLICY;
-        policy.setId(UUID.randomUUID().toString());
+        var policy = NewPolicyDefinition.Builder.aNewPolicyDefinition()
+                .id(UUID.randomUUID().toString())
+                .policy(policySet).build();
         managementApiClient.createPolicy(participantContextId, policy);
 
-        //3. create contract definition if none exists
-        var contractDef = MEMBERSHIP_CONTRACT_DEFINITION;
-        contractDef.setId(UUID.randomUUID().toString());
-        contractDef.setContractPolicyId(policy.getId());
-        contractDef.setAccessPolicyId(policy.getId());
+        //4. create contract definition if none exists
+        var contractDef = NewContractDefinition.Builder.aNewContractDefinition()
+                .id(UUID.randomUUID().toString())
+                .contractPolicyId(policy.getId())
+                .accessPolicyId(policy.getId())
+                .assetsSelector(Set.of(new Criterion("id", "=", assetId)))
+                .build();
         managementApiClient.createContractDefinition(participantContextId, contractDef);
 
 
-        //2. track uploaded file in DB
+        //5. track uploaded file in DB
         participant.getUploadedFiles().add(new UploadedFile(fileId, originalFilename, contentType, combinedMetadata));
     }
 

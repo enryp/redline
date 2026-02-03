@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Metaform Systems, Inc. - initial API and implementation
+ *       Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. - OpenAPI and file upload
  *
  */
 
@@ -24,10 +25,12 @@ import com.metaformsystems.redline.api.dto.response.ContractNegotiation;
 import com.metaformsystems.redline.api.dto.response.FileResource;
 import com.metaformsystems.redline.domain.service.DataAccessService;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Catalog;
+import com.metaformsystems.redline.infrastructure.client.management.dto.CelExpression;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Constraint;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Obligation;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Offer;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Permission;
+import com.metaformsystems.redline.infrastructure.client.management.dto.PolicySet;
 import com.metaformsystems.redline.infrastructure.client.management.dto.Prohibition;
 import com.metaformsystems.redline.infrastructure.client.management.dto.TransferProcess;
 import io.swagger.v3.oas.annotations.Operation;
@@ -82,14 +85,22 @@ public class EdcDataController {
     public ResponseEntity<Void> uploadFile(@PathVariable Long participantId,
                                            @PathVariable Long tenantId,
                                            @PathVariable Long providerId,
-                                           @RequestPart("publicMetadata") String publicMetadata,
-                                           @RequestPart("privateMetadata") String privateMetadata,
+                                           @RequestPart("publicMetadata") Map<String, Object> publicMetadata,
+                                           @RequestPart("privateMetadata") Map<String, Object> privateMetadata,
+                                           @RequestPart(value = "celExpressions", required = false) List<CelExpression> celExpressions,
+                                           @RequestPart(value = "policySet", required = false) PolicySet policySet,
                                            @RequestPart("file") MultipartFile file) {
-
         try {
-            var publicMetadataMap = objectMapper.readValue(publicMetadata, new TypeReference<Map<String, Object>>() {});
-            var privateMetadataMap = objectMapper.readValue(privateMetadata, new TypeReference<Map<String, Object>>() {});
-            dataAccessService.uploadFileForParticipant(participantId, publicMetadataMap, privateMetadataMap, file.getInputStream(), file.getContentType(), file.getOriginalFilename());
+            dataAccessService.uploadFileForParticipant(
+                    participantId,
+                    publicMetadata,
+                    privateMetadata,
+                    file.getInputStream(),
+                    file.getContentType(),
+                    file.getOriginalFilename(),
+                    celExpressions != null ? celExpressions : List.of(),
+                    policySet
+            );
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }

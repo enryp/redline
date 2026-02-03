@@ -9,6 +9,7 @@
  *
  *  Contributors:
  *       Metaform Systems, Inc. - initial API and implementation
+ *       Fraunhofer-Gesellschaft zur Förderung der angewandten Forschung e.V. - improve tests
  *
  */
 
@@ -168,6 +169,10 @@ public class EdcDataControllerTest {
         publicMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         var privateMetadata = new MockPart("privateMetadata", "{\"private\": \"value\"}".getBytes());
         privateMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        var celExpressions = new MockPart("celExpressions", "[{\"id\":\"custom-expression\",\"leftOperand\":\"CustomCredential\",\"description\":\"Custom expression\",\"expression\":\"true\",\"scopes\":[\"catalog\"]}]".getBytes());
+        celExpressions.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        var constraints = new MockPart("constraints", "[{\"leftOperand\":\"purpose\",\"operator\":\"eq\",\"rightOperand\":\"test\"}]".getBytes());
+        constraints.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         // Mock the upload response from the dataplane
         mockWebServer.enqueue(new MockResponse()
@@ -175,10 +180,13 @@ public class EdcDataControllerTest {
                 .setBody("{\"id\": \"generated-file-id-123\"}")
                 .addHeader("Content-Type", "application/json"));
 
-        // mock create-cel-expression
+        // mock create-cel-expression (custom)
         mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         // mock create-asset
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+        // mock create-cel-expression (membership)
         mockWebServer.enqueue(new MockResponse().setResponseCode(200));
 
         // mock create-policy
@@ -191,7 +199,7 @@ public class EdcDataControllerTest {
         mockMvc.perform(multipart("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/files",
                         serviceProvider.getId(), tenant.getId(), participant.getId())
                         .file(mockFile)
-                        .part(publicMetadata, privateMetadata))
+                        .part(publicMetadata, privateMetadata, celExpressions, constraints))
                 .andExpect(status().isOk());
 
         assertThat(participantRepository.findById(participant.getId())).isPresent()
@@ -199,7 +207,7 @@ public class EdcDataControllerTest {
     }
 
     @Test
-    void shouldUploadFile_whenPolicyAndContractDefExist() throws Exception {
+    void shouldFailUploadFile_whenPolicyAndContractDefExist() throws Exception {
         // Create a tenant and participant
         var tenant = new Tenant();
         tenant.setName("Test Tenant");
@@ -225,20 +233,10 @@ public class EdcDataControllerTest {
         );
 
         // Create metadata
-        var metadataPart = new MockPart("metadata", "{\"foo\": \"bar\"}".getBytes());
-        metadataPart.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-
-        // mock create-cel-expression
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
-
-        // mock create-asset
-        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
-
-        // mock create-policy
-        mockWebServer.enqueue(new MockResponse().setResponseCode(409));
-
-        //mock create-contractdef
-        mockWebServer.enqueue(new MockResponse().setResponseCode(409));
+        var publicMetadata = new MockPart("publicMetadata", "{\"foo\": \"bar\"}".getBytes());
+        publicMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+        var privateMetadata = new MockPart("privateMetadata", "{\"private\": \"value\"}".getBytes());
+        privateMetadata.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
         // Mock the upload response from the dataplane
         mockWebServer.enqueue(new MockResponse()
@@ -246,10 +244,19 @@ public class EdcDataControllerTest {
                 .setBody("{\"id\": \"generated-file-id-123\"}")
                 .addHeader("Content-Type", "application/json"));
 
+        // mock create-asset
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+        // mock create-cel-expression (membership)
+        mockWebServer.enqueue(new MockResponse().setResponseCode(200));
+
+        // mock create-policy
+        mockWebServer.enqueue(new MockResponse().setResponseCode(409));
+
         mockMvc.perform(multipart("/api/ui/service-providers/{providerId}/tenants/{tenantId}/participants/{participantId}/files",
                         serviceProvider.getId(), tenant.getId(), participant.getId())
                         .file(mockFile)
-                        .part(metadataPart))
+                        .part(publicMetadata, privateMetadata))
                 .andExpect(status().isInternalServerError());
     }
 
